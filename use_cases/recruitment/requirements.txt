@@ -1,0 +1,41 @@
+# for data preprocessing
+ydata-profiling
+ydata-synthetic
+
+# for modelling
+lightgbm
+fairlearn
+xlrd
+seaborn
+scikit-learn
+sklearn-compat==0.1.3
+scikit-learn==1.6.1
+lightgbm==3.3.0
+#imbalanced-learn==0.13.0
+gdown
+jax
+optax
+flax
+ipywidgets
+
+# for fairness
+holisticai==1.0.14
+jax
+optax
+flax
+
+# for explainability
+pyyaml
+interpret
+aix360
+lime
+
+# for AI documentation
+#model-card-toolkit
+# pip install model-card-toolkit --use-deprecated=legacy-resolver
+
+# for deployment
+kserve
+#mlflow   #  mlflow[extras]  To deploy with MLServer
+mlserver
+mlserver_mlflow

@@ -1,0 +1,23 @@
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "hiring-sklearn-mlflow"
+  namespace: kserve-test
+spec:
+  predictor:
+    containers:
+      - name: "hiring-sklearn-mlflow"
+        image: "albanacelepija/hiring-sklearn-mlflow"
+        resources:
+          requests:
+            cpu: "1"
+            memory: "8Gi"
+          limits:
+            cpu: "1"
+            memory: "16Gi"
+        ports:
+          - containerPort: 8080
+            protocol: TCP
+        env:
+          - name: PROTOCOL
+            value: "v2"

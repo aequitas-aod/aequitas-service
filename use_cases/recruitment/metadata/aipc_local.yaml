@@ -1,0 +1,387 @@
+domain: Recruitment
+data_modality: tabular
+ai_task: classification
+ai_product_name: Hiring classifier
+ai_product_description: This is a sklearn model which aims to classify whether or not an individual should be hired.
+framework: local
+operations:
+
+
+####################################################### Evaluate if AI product can be reused for new use case
+  - type: data_profiling  
+    stage: data_preparation
+    id: data_profiling
+    name: Generate EDA profiling report
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: data_preparation.py
+        method_name: data_drift_detection
+        requirements: requirements.txt
+        inputs:
+          - data:  hiring_data_original
+          - configuration: constraints_file 
+        outputs:
+          - report: data_profiling_report
+
+  - type: data_validation  
+    stage: data_preparation
+    id: data_drift_detection
+    name: Evaluate whether the target production data have drifted from training data 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec: 
+        path: data_preparation.py
+        method_name: data_drift_status
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_original
+          - configuration: constraints_file    # range of values, thresholds       
+        outputs:
+          -  status: data_drift_status
+
+####################################################### Data Preparation Stage
+  - type: data_preprocessing  
+    stage: data_preparation
+    id: data_preprocessing_step1
+    name: Data preprocessing initial analysis 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: src/local_platform/data_preparation.py
+        method_name: load_data
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_original
+          - configuration: output_file  
+        outputs:
+          - data: hiring_data_processed 
+
+  - type: data_profiling  
+    stage: data_preparation
+    id: data_profiling_custom
+    name: Data profiling custom analysis 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: src/local_platform/data_preparation.py
+        method_name: data_profiling_custom
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_original
+          - configuration: profiling_actions  
+        outputs:
+          - data: data_profiling_custom_report 
+
+
+  - type: data_preprocessing  
+    stage: data_preparation
+    id: data_preprocessing_reweighing
+    name: Data reweighing to mitigate bias 
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: data_preparation.py
+        method_name: bias_mitigation_pre_reweighing
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - configuration: output_reweigh_file        
+        outputs:
+          - data: hiring_data_reweighed 
+
+######################################################### Modelling Stage
+
+################### Model training
+  - type: model_training
+    stage: modelling
+    id: model_train
+    name: Model Simple Training
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: train_model
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - configuration: model_train
+        outputs:
+          - model: model_baseline
+
+  - type: model_training
+    stage: modelling
+    id: model_train_reweighing
+    name: Model Training fairness aware
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: bias_mitigation_in_process_train
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_reweighed
+          - configuration: model_train_fairness_aware
+          - report: model_acc_fairness_metric_report
+        outputs:
+          - model: model_fairness_aware
+
+################### Model evaluation 
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_accuracy
+    name: Model Overall Performance Evaluation
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: model_evaluation_accuracy
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_baseline
+          - configuration: model_train
+        outputs:
+          - report: model_metrics_report
+
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_accuracy_demographic_groups
+    name: Model Overall and Demographic Groups Performance Evaluation
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: model_evaluation_accuracy_demographic_groups
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_baseline
+          - configuration: model_train
+        outputs:
+          - report: model_performance_metrics_demographic_report
+  
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_equality_of_outcome
+    name: Model Equality of Outcome Metrics Evaluation
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: model_evaluation_equality_of_outcome
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_fairness_aware
+          - configuration: model_train_fairness_aware
+        outputs:
+          - report: model_eval_EOutcome_report
+
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_equality_of_opportunity
+    name: Model Equality of Opportunity Metrics Evaluation
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: model_evaluation_equality_of_opportunity
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_fairness_aware
+          - configuration: model_train_fairness_aware
+        outputs:
+          - report: model_eval_EOpportunity_report
+
+####################### Model Validation
+
+  - type: model_validation
+    stage: modelling
+    id: model_validation_baseline
+    name: Model Validation for Baseline Performance Metrics
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: model_validation_baseline
+        requirements: requirements.txt
+        inputs:
+          - report: model_performance_metrics_demographic_report
+          - configuration: model_train_fairness_aware
+        outputs:
+          - status: model_validation_baseline
+
+  - type: model_validation
+    stage: modelling
+    id: model_validation_fairness
+    name: Model Validation for Baseline Performance and Fairness Constraints
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: model_validation_fairness
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - model: model_fairness_aware
+          - configuration: model_train_fairness_aware
+        outputs:
+          - status: model_validation_fairness
+
+####################################################### Operationalization Stage
+
+# model deployment (kserve)
+  - type: model_deployment
+    stage: operationalization
+    id: model_deploy
+    name: Model Deployment using kserve
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: model_deploy
+        requirements: requirements.txt
+        inputs:
+          - model: model_fairness_unaware
+
+        outputs:
+          - configuration: model_inferenceservice_endpoint
+
+
+##################################################### Artifacts
+artifacts:
+  data:
+    - name: hiring_data_original
+      spec:
+        filepath: /home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv
+        resulting_filepath: data_processed.csv
+    - name: hiring_data_processed
+      spec:
+        filepath: data_processed.csv
+    - name: hiring_data_training
+      spec:
+        filepath: data_training.csv
+    - name: hiring_data_testing
+      spec:
+        filepath: data_testing.csv
+    - name: hiring_data_reweighed
+      spec:
+        filepath: data_reweighed.csv
+  model:
+    - name: model_baseline
+      version: latest
+      path: model_baseline.pickle
+    - name: model_fairness_aware
+      version: 1
+      path: model_fair.pickle
+  configuration:
+    - name: output_file
+      config:
+        resulting_filepath: data_processed.parquet
+    - name: output_reweigh_file
+      config:
+        sensitive_features:
+          - nationality
+          - gender
+        test_size: 0.3
+        random_state: 4
+        resulting_filepath: data_reweighed.parquet
+    - name: model_train
+      config:
+        test_size: 0.3
+        random_state: 4
+        model_filepath: model_baseline.pickle
+        sensitive_features:
+          - nationality
+          - gender
+    - name: model_train_fairness_aware
+      config:
+        test_size: 0.3
+        random_state: 4
+        threshold: 70
+    - name: model_evaluation_fairness_metrics     # values considered fair for each metric
+      config: 
+        disparate_impact:
+          min_allowed: 0.8
+          max_allowed: 1.2
+        statistical_parity:
+          min_allowed: -0.1
+          max_allowed: 0.1
+        equal_opportunity_difference:
+          min_allowed: -0.1
+          max_allowed: 0.1
+    - name: model_inferenceservice_endpoint
+      endpoint: "http://localhost:8080/v2/models/hiring-sklearn/versions/v0.1.0/infer"
+    - name: constraints_file
+      config:
+        constraints_filepath: artifacts/constraints.json
+        min_training_data: 1000
+    - name: profiling_actions
+      config:
+        dataset_name: recruitmentdataset-2022
+        actions: summary, dtypes, missing_values, unique_values, correlations, histograms, outliers
+  report:
+    - name: data_profiling_report
+      spec:
+        filepath: data_drift.html    
+    - name: model_metrics_report
+      spec:
+        filepath: model_metrics_report.csv
+    - name: model_performance_metrics_demographic_report
+      spec:
+        filepath: model_performance_metrics_demographic_report.csv
+    - name: model_eval_EOutcome_report
+      spec:
+        filepath: model_eval_EOutcome_report.csv
+    - name: model_eval_EOpportunity_report
+      spec:
+        filepath: model_eval_EOpportunity_report.csv
+    - name: data_profiling_custom_report
+      spec:
+        filepath: data_profiling_custom_report.json
+  status:
+    - name: model_validation_baseline
+      status_file: model_validation.json
+      status_key: model_validation_baseline
+    - name: model_validation_fairness
+      status_file: model_validation.json
+      status_key: model_validation_fairness
+  documentation:
+    - name: data_card_hiring
+      filepath: cards/data_card.md
+    - name: model_card_hiring
+      filepath: cards/model_card.md
+  function:
+    - name: model_deploy_function
+      function_name: model_deploy
+      desc: "Deploy the model using kserve InferenceService"
+      path: src/operationalization.py
+  service:
+    - name: model_deploy_service
+      port: 1234
+      namespace: kserve-test
+
+requirements_dimensions:
+  - baseline
+  - fairness
+  - robustness
+excluded_operations:
+  - system_monitoring
+  - pre_inference_transformations
+  - production_data_monitoring
