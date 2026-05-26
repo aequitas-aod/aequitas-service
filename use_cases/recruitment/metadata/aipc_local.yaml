@@ -268,20 +268,20 @@ operations:
 artifacts:
   data:
     - name: hiring_data_original
-      spec:
-        filepath: /home/albana/Desktop/Albana/DataScience/AI4DT/Projects/enhanced_mlops/framework/library/use_cases/tabular/src/local_platform/artifacts/data/recruitmentdataset-2022.csv
+      config:
+        filepath: akkodis.csv
         resulting_filepath: data_processed.csv
     - name: hiring_data_processed
-      spec:
+      config:
         filepath: data_processed.csv
     - name: hiring_data_training
-      spec:
+      config:
         filepath: data_training.csv
     - name: hiring_data_testing
-      spec:
+      config:
         filepath: data_testing.csv
     - name: hiring_data_reweighed
-      spec:
+      config:
         filepath: data_reweighed.csv
   model:
     - name: model_baseline
@@ -338,22 +338,22 @@ artifacts:
         actions: summary, dtypes, missing_values, unique_values, correlations, histograms, outliers
   report:
     - name: data_profiling_report
-      spec:
+      config:
         filepath: data_drift.html    
     - name: model_metrics_report
-      spec:
+      config:
         filepath: model_metrics_report.csv
     - name: model_performance_metrics_demographic_report
-      spec:
+      config:
         filepath: model_performance_metrics_demographic_report.csv
     - name: model_eval_EOutcome_report
-      spec:
+      config:
         filepath: model_eval_EOutcome_report.csv
     - name: model_eval_EOpportunity_report
-      spec:
+      config:
         filepath: model_eval_EOpportunity_report.csv
     - name: data_profiling_custom_report
-      spec:
+      config:
         filepath: data_profiling_custom_report.json
   status:
     - name: model_validation_baseline

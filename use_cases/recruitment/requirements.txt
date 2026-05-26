@@ -3,24 +3,11 @@ ydata-profiling
 ydata-synthetic
 
 # for modelling
-lightgbm
 fairlearn
-xlrd
 seaborn
 scikit-learn
 
 # for fairness
-holisticai==1.0.14
-aequitas-lib==0.1.0
+aequitas-fairlib
 
-# for explainability
-pyyaml
-interpret
-aix360
-lime
-
-# for deployment
-kserve
-#mlflow   #  mlflow[extras]  To deploy with MLServer
-mlserver
-mlserver_mlflow
+# for methodology

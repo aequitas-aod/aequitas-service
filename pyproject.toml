@@ -1,0 +1,28 @@
+[project]
+name = "aequitas-service"
+version = "0.1.0"
+description = "Decompose aequitas into a modular production-ready service."
+authors = [
+    {name = "AlbanaCelepija", email = "acelepija@fbk.eu"}
+]
+license = {text = "Apache 2.0"}
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "seaborn",
+    "scikit-learn",
+    "aequitas-fairlib",
+]
+
+[tool.poetry]
+
+[tool.poetry.dependencies]
+# Git-hosted dependency — not available on PyPI
+templops = {git = "https://github.com/AlbanaCelepija/enhanced_mlops"}
+
+[tool.poetry.group.dev.dependencies]
+black = "^26.5.1"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
