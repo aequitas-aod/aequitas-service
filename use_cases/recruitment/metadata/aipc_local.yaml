@@ -8,44 +8,11 @@ operations:
 
 
 ####################################################### Evaluate if AI product can be reused for new use case
-  - type: data_profiling  
-    stage: data_preparation
-    id: data_profiling
-    name: Generate EDA profiling report
-    requirement_dimension: baseline
-    implementation: 
-      framework: local
-      spec:
-        path: data_preparation.py
-        method_name: data_drift_detection
-        requirements: requirements.txt
-        inputs:
-          - data:  hiring_data_original
-          - configuration: constraints_file 
-        outputs:
-          - report: data_profiling_report
-
-  - type: data_validation  
-    stage: data_preparation
-    id: data_drift_detection
-    name: Evaluate whether the target production data have drifted from training data 
-    requirement_dimension: baseline
-    implementation: 
-      framework: local
-      spec: 
-        path: data_preparation.py
-        method_name: data_drift_status
-        requirements: requirements.txt
-        inputs:
-          - data: hiring_data_original
-          - configuration: constraints_file    # range of values, thresholds       
-        outputs:
-          -  status: data_drift_status
 
 ####################################################### Data Preparation Stage
   - type: data_preprocessing  
     stage: data_preparation
-    id: data_preprocessing_step1
+    id: load_data
     name: Data preprocessing initial analysis 
     requirement_dimension: baseline
     implementation: 
@@ -55,10 +22,27 @@ operations:
         method_name: load_data
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_original
-          - configuration: output_file  
+          - data: data_original
         outputs:
-          - data: hiring_data_processed 
+          - data: data_processed 
+
+  - type: data_preprocessing  
+    stage: data_preparation
+    id: split_train_valid_test_data
+    name: Split data into train, validation and test sets 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: src/local_platform/data_preparation.py
+        method_name: split_train_valid_test_data
+        requirements: requirements.txt
+        inputs:
+          - data: data_processed  
+        outputs:
+          - data: data_train 
+          - data: data_test 
+          - data: data_validation 
 
   - type: data_profiling  
     stage: data_preparation
@@ -72,28 +56,11 @@ operations:
         method_name: data_profiling_custom
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_original
+          - data: data_train
           - configuration: profiling_actions  
         outputs:
           - data: data_profiling_custom_report 
 
-
-  - type: data_preprocessing  
-    stage: data_preparation
-    id: data_preprocessing_reweighing
-    name: Data reweighing to mitigate bias 
-    requirement_dimension: fairness
-    implementation: 
-      framework: local
-      spec:
-        path: data_preparation.py
-        method_name: bias_mitigation_pre_reweighing
-        requirements: requirements.txt
-        inputs:
-          - data: hiring_data_processed
-          - configuration: output_reweigh_file        
-        outputs:
-          - data: hiring_data_reweighed 
 
 ######################################################### Modelling Stage
 
@@ -110,7 +77,7 @@ operations:
         method_name: train_model
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_processed
+          - data: data_train
           - configuration: model_train
         outputs:
           - model: model_baseline
@@ -127,13 +94,14 @@ operations:
         method_name: bias_mitigation_in_process_train
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_reweighed
+          - data: data_train
           - configuration: model_train_fairness_aware
           - report: model_acc_fairness_metric_report
         outputs:
           - model: model_fairness_aware
 
 ################### Model evaluation 
+
   - type: model_evaluation
     stage: modelling
     id: model_evaluation_accuracy
@@ -146,7 +114,7 @@ operations:
         method_name: model_evaluation_accuracy
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_processed
+          - data: data_train
           - model: model_baseline
           - configuration: model_train
         outputs:
@@ -170,42 +138,6 @@ operations:
         outputs:
           - report: model_performance_metrics_demographic_report
   
-  - type: model_evaluation
-    stage: modelling
-    id: model_evaluation_equality_of_outcome
-    name: Model Equality of Outcome Metrics Evaluation
-    requirement_dimension: fairness
-    implementation: 
-      framework: local
-      spec:
-        path: modelling.py
-        method_name: model_evaluation_equality_of_outcome
-        requirements: requirements.txt
-        inputs:
-          - data: hiring_data_processed
-          - model: model_fairness_aware
-          - configuration: model_train_fairness_aware
-        outputs:
-          - report: model_eval_EOutcome_report
-
-  - type: model_evaluation
-    stage: modelling
-    id: model_evaluation_equality_of_opportunity
-    name: Model Equality of Opportunity Metrics Evaluation
-    requirement_dimension: fairness
-    implementation: 
-      framework: local
-      spec:
-        path: modelling.py
-        method_name: model_evaluation_equality_of_opportunity
-        requirements: requirements.txt
-        inputs:
-          - data: hiring_data_processed
-          - model: model_fairness_aware
-          - configuration: model_train_fairness_aware
-        outputs:
-          - report: model_eval_EOpportunity_report
-
 ####################### Model Validation
 
   - type: model_validation
@@ -267,22 +199,22 @@ operations:
 ##################################################### Artifacts
 artifacts:
   data:
-    - name: hiring_data_original
+    - name: data_original
       config:
-        filepath: akkodis.csv
+        filepath: data_original.csv
         resulting_filepath: data_processed.csv
-    - name: hiring_data_processed
+    - name: data_processed
       config:
         filepath: data_processed.csv
-    - name: hiring_data_training
+    - name: data_training
       config:
         filepath: data_training.csv
-    - name: hiring_data_testing
+    - name: data_testing
       config:
         filepath: data_testing.csv
-    - name: hiring_data_reweighed
+    - name: data_validation
       config:
-        filepath: data_reweighed.csv
+        filepath: data_validation.csv
   model:
     - name: model_baseline
       version: latest
@@ -343,18 +275,6 @@ artifacts:
     - name: model_metrics_report
       config:
         filepath: model_metrics_report.csv
-    - name: model_performance_metrics_demographic_report
-      config:
-        filepath: model_performance_metrics_demographic_report.csv
-    - name: model_eval_EOutcome_report
-      config:
-        filepath: model_eval_EOutcome_report.csv
-    - name: model_eval_EOpportunity_report
-      config:
-        filepath: model_eval_EOpportunity_report.csv
-    - name: data_profiling_custom_report
-      config:
-        filepath: data_profiling_custom_report.json
   status:
     - name: model_validation_baseline
       status_file: model_validation.json

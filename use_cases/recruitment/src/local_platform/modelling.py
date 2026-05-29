@@ -15,12 +15,17 @@ STATUS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "status")
 
 
 
-def train_model(data: Data, config: Configuration):
+def train_model_baseline(data: Data, config: Configuration):
     """ """
     pass
 
+def train_model_reweighing():
+    pass
 
-############################################################## Evaluations - Performance metrics - Accuracy
+def train_model_fauci():
+    pass
+
+############################################################## Model Evaluations - Performance and Fairness metrics
 
 
 def model_evaluation_accuracy(
@@ -31,30 +36,33 @@ def model_evaluation_accuracy(
     data_test = data.load_dataset()
     pass
 
+def evaluate_fairness_spd(data:Data, model: Model, config: Configuration):    
+    data = DataTabular(data.__dict__)
+    dataset = data.load_dataset()
+    X_test = dataset.drop(config.target, axis=1)
+    y_pred = dataset[config.target]
+    
+    X_eval = X_test.copy()
+    X_eval[config.target] = y_pred
+    ds_eval = DataFrame(X_eval)
+    ds_eval.targets, ds_eval.sensitive = config.target, config.sensitive
 
-############## Evaluations - Performance and Fairness evaluation metrics
+    spd = ds_eval.statistical_parity_difference()[{config.target: config.positive_target, config.sensitive: config.favored_class}]
+    return spd
 
+def evaluate_fairness_di(data: Data, model: Model, config: Configuration):
+    data = DataTabular(data.__dict__)
+    dataset = data.load_dataset()
+    X_test = dataset.drop(config.target, axis=1)
+    y_pred = dataset[config.target]
 
-def model_evaluation_accuracy_demographic_groups(
-    model: Model, data_valid: Data, config: Configuration
-):
-    pass
+    X_eval = X_test.copy()
+    X_eval[config.target] = y_pred
+    ds_eval = DataFrame(X_eval)
+    ds_eval.targets, ds_eval.sensitive = config.target, config.sensitive
 
-def calculate_success_rate(data: Data, config: Configuration, model: Model):
-    pass
-
-
-def calculate_statistical_parity(data: Data, config: Configuration, model: Model):
-    # Evaluation metrics based on the True Positive Rate of the model for each group within the sensitive features
-    pass
-
-
-def confusion_matrices():
-    pass
-
-
-def calculate_equal_opportunity_difference():
-    pass
+    di = ds_eval.disparate_impact()[{config.target: config.positive_target, config.sensitive: config.favored_class}]
+    return di
 
 
 def check_all_fairness_metrics():
@@ -78,11 +86,3 @@ def check_all_fairness_metrics():
 def bias_mitigation_in_process_train(data: Data, config: Configuration, report: Report):
     pass
 
-
-############################################################## Post Processing Bias Mitigation
-
-
-def post_process_bias_mitigation_eq_odds(
-    data_test: Data, model: Model, config: Configuration
-):
-    pass

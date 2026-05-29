@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from library.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
+from temlops.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
 
 FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "data")

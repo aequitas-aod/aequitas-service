@@ -5,14 +5,15 @@ import os
 import yaml
 import json
 import pickle
+import openml
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 from typing import List, Dict, Any, Tuple
-from library.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
-from .platform_artifacts import DataTabular, ReportTabular
+from temlops.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
+from use_cases.recruitment.src.local_platform.platform_artifacts import DataTabular, ReportTabular
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
@@ -34,12 +35,17 @@ REPORTS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "report")
 
 ########################################################### Data Profiling
 
-def load_data(data: Data) -> Data:    
+def load_data(data: Data) -> Data:
+    adult_ds = openml.datasets.get_dataset(179)
+    adult_df, *_ = adult_ds.get_data(dataset_format="dataframe")
+
+    adult_df.rename(columns={"class": "income"}, inplace=True)
+    adult_df.drop(columns=["fnlwgt"], inplace=True)
+    
     data = DataTabular(data.__dict__)
-    dataset = data.load_dataset()
-    #dataset.drop("Id", axis=1, inplace=True)
-    data.log_dataset(dataset)
+    data.log_dataset(adult_df)
     return data
+
 
 def data_profiling(data: Data, report: Report) -> Report:
     data = DataTabular(data.__dict__)
@@ -76,34 +82,7 @@ def data_drift_detection(data: Data, config: Report):
 def data_drift_status(data: Data, output_status: Status):
     pass
 
-def evaluate_fairness_spd(data:Data, config: Configuration):
-    
-    data = DataTabular(data.__dict__)
-    dataset = data.load_dataset()
-    X_test = dataset.drop(config.target, axis=1)
-    y_pred = dataset[config.target]
-    
-    X_eval = X_test.copy()
-    X_eval[config.target] = y_pred
-    ds_eval = DataFrame(X_eval)
-    ds_eval.targets, ds_eval.sensitive = config.target, config.sensitive
 
-    spd = ds_eval.statistical_parity_difference()[{config.target: config.positive_target, config.sensitive: config.favored_class}]
-    return spd
-
-def evaluate_fairness_di(data: Data, config: Configuration):
-    data = DataTabular(data.__dict__)
-    dataset = data.load_dataset()
-    X_test = dataset.drop(config.target, axis=1)
-    y_pred = dataset[config.target]
-
-    X_eval = X_test.copy()
-    X_eval[config.target] = y_pred
-    ds_eval = DataFrame(X_eval)
-    ds_eval.targets, ds_eval.sensitive = config.target, config.sensitive
-
-    di = ds_eval.disparate_impact()[{config.target: config.positive_target, config.sensitive: config.favored_class}]
-    return di
 
 ########################################################### Data Preprocessing
 
@@ -137,9 +116,20 @@ if __name__ == "__main__":
         aipc_config = yaml.safe_load(f)
     data_artifact = list(
         filter(
-            lambda x: x["name"] == "hiring_data_original",
+            lambda x: x["name"] == "data_original",
             aipc_config["artifacts"]["data"],
         )
     )[0]["config"]
-    data = Data(data_artifact)
-    load_data(data)
+    data_original = Data(data_artifact)
+    
+    data_artifact = list(
+        filter(
+            lambda x: x["name"] == "data_processed",
+            aipc_config["artifacts"]["data"],
+        )
+    )[0]["config"]
+    data_processed = Data(data_artifact)
+    
+    
+    load_data(data_original)
+    # evaluate_fairness_spd(data_original, aipc_config) 
