@@ -24,7 +24,7 @@ operations:
         inputs:
           - data: data_original
         outputs:
-          - data: data_processed 
+          - data_processed: data_processed 
 
   - type: data_preprocessing  
     stage: data_preparation
@@ -38,11 +38,12 @@ operations:
         method_name: split_train_valid_test_data
         requirements: requirements.txt
         inputs:
-          - data: data_processed  
+          - data: data_processed
+          - config: splitting_config
         outputs:
-          - data: data_train 
-          - data: data_test 
-          - data: data_validation 
+          - data_train: data_training 
+          - data_test: data_testing 
+          - data_valid: data_validation 
 
   - type: data_profiling  
     stage: data_preparation
@@ -56,10 +57,10 @@ operations:
         method_name: data_profiling_custom
         requirements: requirements.txt
         inputs:
-          - data: data_train
+          - data_train: data_training
           - configuration: profiling_actions  
         outputs:
-          - data: data_profiling_custom_report 
+          - data_profiling_custom_report: data_profiling_custom_report 
 
 
 ######################################################### Modelling Stage
@@ -67,72 +68,71 @@ operations:
 ################### Model training
   - type: model_training
     stage: modelling
-    id: model_train
+    id: train_model_baseline
     name: Model Simple Training
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
         path: modelling.py
-        method_name: train_model
+        method_name: train_model_baseline
         requirements: requirements.txt
         inputs:
-          - data: data_train
-          - configuration: model_train
+          - data: data_training
+          - config: model_train_baseline
         outputs:
           - model: model_baseline
 
   - type: model_training
     stage: modelling
-    id: model_train_reweighing
-    name: Model Training fairness aware
+    id: train_model_reweighing
+    name: Model Training preprocessing with Reweighing for Fairness
     requirement_dimension: fairness
     implementation: 
       framework: local
       spec:
         path: modelling.py
-        method_name: bias_mitigation_in_process_train
+        method_name: train_model_reweighing
         requirements: requirements.txt
         inputs:
-          - data: data_train
-          - configuration: model_train_fairness_aware
-          - report: model_acc_fairness_metric_report
+          - data: data_training
+          - config: model_train_reweighing
         outputs:
-          - model: model_fairness_aware
+          - model: model_fairness_reweighing
 
 ################### Model evaluation 
 
   - type: model_evaluation
     stage: modelling
-    id: model_evaluation_accuracy
+    id: model_evaluation_performance
     name: Model Overall Performance Evaluation
     requirement_dimension: baseline
     implementation: 
       framework: local
       spec:
         path: modelling.py 
-        method_name: model_evaluation_accuracy
+        method_name: model_evaluation_performance
         requirements: requirements.txt
         inputs:
-          - data: data_train
+          - data_test: data_testing
+          - config: model_train_baseline
           - model: model_baseline
-          - configuration: model_train
         outputs:
-          - report: model_metrics_report
+          - report: model_performance_metrics_report
 
   - type: model_evaluation
     stage: modelling
-    id: model_evaluation_accuracy_demographic_groups
-    name: Model Overall and Demographic Groups Performance Evaluation
-    requirement_dimension: baseline
+    id: model_evaluation_fairness_metrics
+    name: Model Fairness Metrics Evaluation
+    requirement_dimension: fairness
     implementation: 
       framework: local
       spec:
         path: modelling.py 
-        method_name: model_evaluation_accuracy_demographic_groups
+        method_name: model_evaluation_fairness
         requirements: requirements.txt
         inputs:
-          - data: hiring_data_processed
+          - data: data_training
           - model: model_baseline
           - configuration: model_train
         outputs:
@@ -201,8 +201,7 @@ artifacts:
   data:
     - name: data_original
       config:
-        filepath: data_original.csv
-        resulting_filepath: data_processed.csv
+        filepath: "179"
     - name: data_processed
       config:
         filepath: data_processed.csv
@@ -217,38 +216,31 @@ artifacts:
         filepath: data_validation.csv
   model:
     - name: model_baseline
-      version: latest
-      path: model_baseline.pickle
-    - name: model_fairness_aware
-      version: 1
-      path: model_fair.pickle
+      config:
+        filepath: model_baseline.pickle
+    - name: model_fairness_reweighing
+      config:
+        filepath: model_fairness_reweighing.pickle
   configuration:
-    - name: output_file
+    - name: splitting_config
       config:
-        resulting_filepath: data_processed.parquet
-    - name: output_reweigh_file
-      config:
-        sensitive_features:
-          - nationality
-          - gender
-        test_size: 0.3
+        valid_size: 0.2
         random_state: 4
-        resulting_filepath: data_reweighed.parquet
-    - name: model_train
+    - name: model_train_baseline
       config:
-        test_size: 0.3
         random_state: 4
-        model_filepath: model_baseline.pickle
-        sensitive_features:
-          - nationality
-          - gender
-    - name: model_train_fairness_aware
+        target_column: income
+        max_iter: 1000
+    - name: model_train_reweighing
       config:
-        test_size: 0.3
-        random_state: 4
-        threshold: 70
+        target_column: income
+        sensitive: sex
     - name: model_evaluation_fairness_metrics     # values considered fair for each metric
       config: 
+        target: income
+        sensitive: sex
+        positive_target: 1
+        favored_class: 0
         disparate_impact:
           min_allowed: 0.8
           max_allowed: 1.2
@@ -272,9 +264,9 @@ artifacts:
     - name: data_profiling_report
       config:
         filepath: data_drift.html    
-    - name: model_metrics_report
+    - name: model_performance_metrics_report
       config:
-        filepath: model_metrics_report.csv
+        filepath: model_performance_metrics_report.csv
   status:
     - name: model_validation_baseline
       status_file: model_validation.json

@@ -3,8 +3,6 @@ sys.path.append("../../../../")
 
 import os
 import yaml
-import json
-import pickle
 import openml
 import numpy as np
 import pandas as pd
@@ -15,7 +13,6 @@ from typing import List, Dict, Any, Tuple
 from temlops.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
 from use_cases.recruitment.src.local_platform.platform_artifacts import DataTabular, ReportTabular
 
-from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from fairlib import DataFrame
@@ -35,16 +32,15 @@ REPORTS_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "report")
 
 ########################################################### Data Profiling
 
-def load_data(data: Data) -> Data:
-    adult_ds = openml.datasets.get_dataset(179)
+def load_data(data: Data, data_processed: Data) -> Data:
+    adult_ds = openml.datasets.get_dataset(data.filepath)
     adult_df, *_ = adult_ds.get_data(dataset_format="dataframe")
 
     adult_df.rename(columns={"class": "income"}, inplace=True)
     adult_df.drop(columns=["fnlwgt"], inplace=True)
     
-    data = DataTabular(data.__dict__)
-    data.log_dataset(adult_df)
-    return data
+    DataTabular(data_processed.__dict__).log_dataset(adult_df)
+    return data_processed
 
 
 def data_profiling(data: Data, report: Report) -> Report:
@@ -86,10 +82,24 @@ def data_drift_status(data: Data, output_status: Status):
 
 ########################################################### Data Preprocessing
 
-def split_train_valid_test_data(data: Data, config: Configuration) -> Tuple[Data, Data]:
+def split_train_valid_test_data(data: Data, config: Configuration, data_train: Data, data_test: Data, data_valid: Data) -> Tuple[Data, Data, Data]:
     dataset = DataTabular(data.__dict__).load_dataset()
-    training_sample, test_sample = dm.split_dataset(dataset, ratio=config.ratio, random_state=config.random_state)
-    return training_sample, test_sample
+    for col in dataset.columns:
+        if dataset[col].dtype == "object" or dataset[col].dtype.name == "category":
+            dataset[col], _ = pd.factorize(dataset[col])
+    # First split: train+val vs test
+    X_train_val, X_test = train_test_split(
+        dataset, test_size=config.test_size, random_state=config.random_state
+    )
+    # Second split: train vs validation
+    X_train, X_val = train_test_split(
+        X_train_val, test_size=config.valid_size, random_state=config.random_state  # 0.25 x 0.8 = 0.2
+    )
+    DataTabular(data_train.__dict__).log_dataset(X_train)
+    DataTabular(data_test.__dict__).log_dataset(X_test)
+    DataTabular(data_valid.__dict__).log_dataset(X_val)
+        
+    return data_train, data_test, data_valid
 
 
 def preprocess_train_data(data_input: Data, data_output: Data):
@@ -109,27 +119,55 @@ def data_card_generation(data: Data, documentation: Documentation):
 
 
 if __name__ == "__main__":
+    def _resolve_vars(specs_list, data_artifacts, config_artifacts, model_artifacts):
+        vars = {}
+        for item in specs_list:
+            artifact_name = list(item.values())[0]
+            key = list(item.keys())[0]
+            match = next((a for a in data_artifacts if a["name"] == artifact_name), None)
+            if match:
+                vars[key] = Data(**{k: v for k, v in match.items() if k != "name"})
+            match = next((a for a in config_artifacts if a["name"] == artifact_name), None)
+            if match:
+                vars[key] = Configuration(**{k: v for k, v in match.items() if k != "name"})
+            match = next((a for a in model_artifacts if a["name"] == artifact_name), None)
+            if match:
+                vars[key] = Model(**{k: v for k, v in match.items() if k != "name"})
+        return vars
+
+    def run_operation(
+        operation,
+        data_artifacts,
+        model_artifacts,
+        config_artifacts
+    ):
+        specs = operation["implementation"]["spec"]
+        method_name = specs["method_name"]
+
+        input_vars = _resolve_vars(specs["inputs"], data_artifacts, config_artifacts, model_artifacts)
+        input_vars.update(_resolve_vars(specs["outputs"], data_artifacts, config_artifacts, model_artifacts))
+        print(input_vars)
+
+        func = globals()[method_name]
+        func(**input_vars)
+       
     with open(
         "../../metadata/aipc_local.yaml",
         "r",
     ) as f:
         aipc_config = yaml.safe_load(f)
-    data_artifact = list(
+    operation = list(
         filter(
-            lambda x: x["name"] == "data_original",
-            aipc_config["artifacts"]["data"],
+            lambda x: x["id"] == "split_train_valid_test_data",
+            aipc_config["operations"],
         )
-    )[0]["config"]
-    data_original = Data(data_artifact)
-    
-    data_artifact = list(
-        filter(
-            lambda x: x["name"] == "data_processed",
-            aipc_config["artifacts"]["data"],
-        )
-    )[0]["config"]
-    data_processed = Data(data_artifact)
-    
-    
-    load_data(data_original)
-    # evaluate_fairness_spd(data_original, aipc_config) 
+    )[0]
+    data_artifacts = aipc_config["artifacts"]["data"]
+    model_artifacts = aipc_config["artifacts"]["model"]
+    config_artifacts = aipc_config["artifacts"]["configuration"]
+    run_operation(
+        operation,
+        data_artifacts,
+        model_artifacts,
+        config_artifacts
+    )
