@@ -96,10 +96,43 @@ operations:
         requirements: requirements.txt
         inputs:
           - data: data_training
-          - config: model_train_reweighing
+          - config: model_train_fair
         outputs:
           - model: model_fairness_reweighing
 
+  - type: model_training
+    stage: modelling
+    id: train_model_disparate_impact_remover
+    name: Model Training preprocessing with Disparate Impact Remover for Fairness
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: train_model_disparate_impact_remover
+        requirements: requirements.txt
+        inputs:
+          - data: data_training
+          - config: model_train_fair
+        outputs:
+          - model: model_fairness_disparate_impact_remover
+
+  - type: model_training
+    stage: modelling
+    id: train_model_learning_fair_representations
+    name: Model Training preprocessing with Learning Fair Representations for Fairness
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: train_model_learning_fair_representations
+        requirements: requirements.txt
+        inputs:
+          - data: data_training
+          - config: model_train_fair
+        outputs:
+          - model: model_fairness_learning_fair_representations
 ################### Model evaluation 
 
   - type: model_evaluation
@@ -122,7 +155,25 @@ operations:
 
   - type: model_evaluation
     stage: modelling
-    id: model_evaluation_fairness_metrics
+    id: model_evaluation_performance_reweighing
+    name: Model Overall Performance Evaluation for Reweighing Model
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: model_evaluation_performance
+        requirements: requirements.txt
+        inputs:
+          - data_test: data_testing
+          - config: model_train_baseline
+          - model: model_fairness_reweighing
+        outputs:
+          - report: model_performance_metrics_report
+
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_fairness
     name: Model Fairness Metrics Evaluation
     requirement_dimension: fairness
     implementation: 
@@ -132,12 +183,68 @@ operations:
         method_name: model_evaluation_fairness
         requirements: requirements.txt
         inputs:
-          - data: data_training
+          - data_test: data_testing
           - model: model_baseline
-          - configuration: model_train
+          - config: model_evaluation_fairness_metrics
         outputs:
-          - report: model_performance_metrics_demographic_report
+          - report: model_fairness_metrics_report
+
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_fairness_reweighing
+    name: Model Fairness Metrics Evaluation for Reweighing Model
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: model_evaluation_fairness
+        requirements: requirements.txt
+        inputs:
+          - data_test: data_testing
+          - model: model_fairness_reweighing
+          - config: model_evaluation_fairness_metrics
+        outputs:
+          - report: model_fairness_metrics_report
   
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_fairness_disparate_impact_remover
+    name: Model Fairness Metrics Evaluation for Disparate Impact Remover Model
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: model_evaluation_fairness_disparate_impact_remover
+        requirements: requirements.txt
+        inputs:
+          - data_test: data_testing
+          - model: model_fairness_disparate_impact_remover
+          - config: model_evaluation_fairness_metrics
+        outputs:
+          - report: model_fairness_metrics_report
+
+  - type: model_evaluation
+    stage: modelling
+    id: model_evaluation_fairness_lfr
+    name: Model Fairness Metrics Evaluation for Learning Fair Representations Model
+    requirement_dimension: fairness
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py 
+        method_name: model_evaluation_fairness_lfr
+        requirements: requirements.txt
+        inputs:
+          - data_test: data_testing
+          - data_train: data_training
+          - model: model_fairness_learning_fair_representations
+          - config: model_evaluation_fairness_metrics
+        outputs:
+          - report: model_fairness_metrics_report
+
+
 ####################### Model Validation
 
   - type: model_validation
@@ -152,7 +259,7 @@ operations:
         method_name: model_validation_baseline
         requirements: requirements.txt
         inputs:
-          - report: model_performance_metrics_demographic_report
+          - report: model_performance_metrics_report
           - configuration: model_train_fairness_aware
         outputs:
           - status: model_validation_baseline
@@ -221,6 +328,12 @@ artifacts:
     - name: model_fairness_reweighing
       config:
         filepath: model_fairness_reweighing.pickle
+    - name: model_fairness_disparate_impact_remover
+      config:
+        filepath: model_fairness_disparate_impact_remover.pickle
+    - name: model_fairness_learning_fair_representations
+      config:
+        filepath: model_fairness_learning_fair_representations.pickle
   configuration:
     - name: splitting_config
       config:
@@ -231,7 +344,7 @@ artifacts:
         random_state: 4
         target_column: income
         max_iter: 1000
-    - name: model_train_reweighing
+    - name: model_train_fair
       config:
         target_column: income
         sensitive: sex
@@ -267,6 +380,9 @@ artifacts:
     - name: model_performance_metrics_report
       config:
         filepath: model_performance_metrics_report.csv
+    - name: model_fairness_metrics_report
+      config:
+        filepath: model_fairness_metrics_report.csv
   status:
     - name: model_validation_baseline
       status_file: model_validation.json
