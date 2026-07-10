@@ -1,0 +1,14 @@
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Artifacts
+data/
+models/
+
+# Python cache
+__pycache__/
+python-version
+.python-version
+
+# Environment variables
+.env
