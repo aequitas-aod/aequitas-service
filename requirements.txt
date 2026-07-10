@@ -5,3 +5,4 @@ streamlit-ace
 streamlit-monaco
 streamlit_elements
 pyyaml
+rdflib

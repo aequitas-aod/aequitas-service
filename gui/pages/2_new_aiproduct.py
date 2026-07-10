@@ -4,7 +4,7 @@ import yaml
 import asyncio
 import pandas as pd
 import streamlit as st
-from utils import populate_stages
+from utils import populate_stages, get_application_domains
 from dotenv import load_dotenv, find_dotenv
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -33,10 +33,11 @@ with open(pipeline_definitions_folder, "r") as yaml_file:
 
 def lifecycle_stages():
     domain_col, task_col, use_type_col = st.columns(3)
+    st.write(get_application_domains())
     with domain_col:
         application_domain = st.selectbox(
             "Application Domain",
-            ["Healthcare", "Finance", "Retail", "Manufacturing", "Education", "Transportation", "Telecommunications"],
+            get_application_domains(),
         )
     with task_col:
         ai_task = st.selectbox(

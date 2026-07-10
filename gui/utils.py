@@ -1,12 +1,56 @@
 import os
+import re
 import yaml
 import streamlit as st
+from rdflib import Graph
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
 pipeline_definitions_folder = os.path.join(
     parent_folder, "framework/temlops/config/pipeline_definitions.yaml"
 )
+
+# Path to the fairops ontology (lives in the separate fairness_ontology/fairops
+# project). Override with the FAIROPS_ONTOLOGY_PATH env var if it's located
+# elsewhere on disk.
+FAIROPS_ONTOLOGY_PATH = os.environ.get(
+    "FAIROPS_ONTOLOGY_PATH",
+    "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/fairness_ontology/fairops/docs/fairops.ttl",
+)
+
+APPLICATION_DOMAIN_QUERY = """
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX core: <https://purl.org/fairops/core#>
+
+SELECT ?individual
+WHERE {
+    ?individual rdf:type core:ApplicationDomain .
+}
+"""
+
+
+@st.cache_resource
+def _load_ontology_graph():
+    graph = Graph()
+    graph.parse(FAIROPS_ONTOLOGY_PATH, format="turtle")
+    return graph
+
+
+def _humanize(local_name):
+    # Keep acronyms together (ICTSecurity -> ICT Security) before splitting
+    # the remaining lower-to-upper word boundaries (RetailAndECommerce ->
+    # Retail And E Commerce).
+    spaced = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", local_name)
+    spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", spaced)
+    return spaced
+
+
+def get_application_domains():
+    graph = _load_ontology_graph()
+    local_names = [
+        str(row.individual).split("#")[-1] for row in graph.query(APPLICATION_DOMAIN_QUERY)
+    ]
+    return sorted(_humanize(name) for name in local_names)
 
 
 def session_state_params(current_product, current_framework):
