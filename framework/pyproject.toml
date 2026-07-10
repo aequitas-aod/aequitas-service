@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "temlops"
+version = "0.0.1"
+description = "Trustworthy Enhanced MLOps"
+authors = ["AlbanaCelepija <acelepija@fbk.eu>"]
+license = "Apache 2.0"
+packages = [{ include = "temlops" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+fastapi = ">=0.123.0"
+pandas = ">=2.0.3"
+pyyaml = ">=6.0.3"
+uvicorn = ">=0.33.0"
+aequitas-fairlib = "^2.8.2"
+
+[tool.poetry.group.dev.dependencies]
+black = ">=23.0.0"
+mypy = ">=1.0.0"
+pytest = ">=7.0.0"
+pytest-cov = ">=4.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+source_pkgs = ["temlops"]
+branch = true
+parallel = true
+omit = ["temlops/src/__about__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]

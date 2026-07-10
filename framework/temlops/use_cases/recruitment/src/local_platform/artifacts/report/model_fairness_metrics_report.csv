@@ -1,0 +1,5 @@
+algorithm,spd,di
+model_baseline,-0.17077496782161009,4.861589108826034
+model_fairness_disparate_impact_remover,0.03988844291379064,0.6979435349105391
+model_fairness_learning_fair_representations,0.052859988512094745,0.3101490329019975
+model_fairness_reweighing,0.061047089840868624,0.6257862962534136

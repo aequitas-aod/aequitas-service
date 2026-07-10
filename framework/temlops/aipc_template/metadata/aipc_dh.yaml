@@ -1,0 +1,164 @@
+domain: PA
+data_modality: text
+ai_task: text_generation
+framework: dh
+operations:
+
+
+####################################################### Evaluate if AI product can be reused for new use case
+  - type: data_validation  
+    stage: data_preparation
+    id: is_prod_reusable
+    name: Evaluate whether the target production data have drifted from the training data.
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: data_preparation.py
+        method_name: target_data_drift_detection
+        requirements: requirements.txt
+        inputs:
+          - data: production_data_example
+          - data: reference_training_data       
+        outputs:
+          - 
+
+####################################################### Data Preparation Stage
+  - type: data_preprocessing  
+    stage: data_preparation
+    id: data_preprocessing_step1
+    name: Data preprocessing initial analysis 
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: data_preparation.py
+        method_name: load_data
+        requirements: requirements.txt
+        inputs:
+          - configuration: output_file        
+        outputs:
+          - data: data_processed 
+
+  - type: data_validation  
+    stage: data_preparation
+    id: data_validation_1
+    name: Data drift detection
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: data_preparation.py
+        method_name: drift_detection
+        requirements: requirements.txt
+        inputs:
+          - configuration: output_file        
+        outputs:
+          - data: data_processed 
+
+####################################################### Modelling Stage
+  - type: model_training
+    stage: modelling
+    id: model_train
+    name: Model Training without fairness awareness
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: train_model
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - configuration: model_train_fairness_unaware
+        outputs:
+          - model: model_fairness_unaware
+
+  - type: model_evaluation
+    stage: modelling
+    id: model_train
+    name: Model evaluation - perplexity
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: train_model
+        requirements: requirements.txt
+        inputs:
+          - data: hiring_data_processed
+          - configuration: model_train_fairness_unaware
+        outputs:
+          - model: model_fairness_unaware
+
+####################################################### Operationalization Stage
+
+# model deployment (kserve)
+  - type: model_deployment
+    stage: operationalization
+    id: model_deploy
+    name: Model Deployment using kserve
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: model_deploy
+        requirements: requirements.txt
+        inputs:
+          - model: model_fairness_unaware
+
+        outputs:
+          - configuration: model_inferenceservice_endpoint
+
+####################################################### Artifacts
+artifacts:
+  data:
+    - name: production_data_example
+      filepath: prod_data.parquet
+    - name: reference_training_data
+      filepath: train_data.parquet
+    - name: hiring_data_reweighed
+      filepath: data_reweighed.parquet
+  model:
+    - name: model_fairness_unaware
+      version: latest
+      path: fairness/holisticAI/models/model_no_fair.pickle
+    - name: model_fairness_aware
+      version: 1
+      path: ../models/model_fair.pickle
+  configuration:
+    - name: output_file
+      config:
+        url: https://drive.google.com/uc?id=1pkGhrZL_cEde9CaLspu-yO9CKxsUd7e5
+        original_filepath: data.pickle
+        resulting_filepath: data.parquet
+  report:
+    - name: data_report
+      filepath: data_report.json    
+    - name: model_metrics_report
+      filepath: model_metrics_report.csv
+  documentation:
+    - name: data_card_hiring
+      filepath: cards/data_card.md
+    - name: model_card_hiring
+      filepath: cards/model_card.md
+  function:
+    - name: model_deploy_function
+      function_name: model_deploy
+      desc: "Deploy the model using kserve InferenceService"
+      path: 
+  service:
+    - name: model_deploy_service
+      port: 1234
+      namespace: kserve-test
+
+requirements_dimensions:
+  - baseline
+  - fairness
+  - robustness
+excluded_operations:
+  - system_monitoring
+  - pre_inference_transformations
+  - production_data_monitoring
+
