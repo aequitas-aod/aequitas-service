@@ -3,7 +3,7 @@ name = "aequitas-service"
 version = "0.1.0"
 description = "Decompose aequitas into a modular production-ready service."
 authors = [
-    {name = "AlbanaCelepija", email = "acelepija@fbk.eu"}
+    {name = "AlbanaCelepija", email = "albana.celepija@unibo.it"}
 ]
 license = {text = "Apache 2.0"}
 readme = "README.md"
@@ -12,6 +12,7 @@ dependencies = [
     "seaborn",
     "scikit-learn",
     "aequitas-fairlib",
+    "rdflib (>=7.6.0,<8.0.0)",
 ]
 
 [tool.poetry]
