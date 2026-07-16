@@ -4,6 +4,7 @@ import yaml
 import asyncio
 import pandas as pd
 import streamlit as st
+from collections import defaultdict
 from utils import (
     populate_stages,
     get_application_domains,
@@ -13,6 +14,7 @@ from utils import (
     get_fairness_concerns,
     get_fairness_notions,
     get_fairness_metrics,
+    get_mitigation_techniques,
     render_cascade_checkbox,
     render_cascade_question,
 )
@@ -29,6 +31,24 @@ _ = load_dotenv(find_dotenv())
 st.set_page_config(layout="wide", page_title="New AI Product")  # , page_icon="📊"
 st.title("Compliance Assessment tool")
 # st.sidebar.header("DataFrame Demo")
+
+# Enlarges the tab labels (st.tabs renders them small by default).
+st.markdown(
+    """
+    <style>
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size: 20px;
+        font-weight: 600;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def render_section_header(text):
+    """Section title styled larger than the default st.write() body text."""
+    st.markdown(f"<p style='font-size:22px; font-weight:600;'>{text}</p>", unsafe_allow_html=True)
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
@@ -82,17 +102,15 @@ def fairness_settings():
 
 
 def lifecycle_stages():
-    st.write("AI system's stages and operations")
+    render_section_header("AI system's stages and operations")
     selected_operations = populate_stages(pipeline_configs, createview=True)
     st.session_state["selected_operations"] = selected_operations
 
 
 # Step 1b: cascading fairness requirements for the selected AI Type of Use.
 # Checking a Fairness Concern reveals its Fairness Notions; checking a Notion
-# reveals the Fairness Metrics that measure it. Mitigation Techniques aren't
-# wired in yet because the ontology's enforces/mitigatedWith relations have no
-# instance data yet (schema-only) - add a 4th render_cascade_checkbox level
-# here once that lands.
+# reveals the Fairness Metrics that measure it; checking a Metric reveals the
+# Mitigation Techniques that enforce it 
 def fairness_requirements_section():
     st.write("Relevant fairness requirements for the selected AI Type of Use")
     ai_type_of_use_iri = st.session_state.get("ai_type_of_use")
@@ -106,21 +124,70 @@ def fairness_requirements_section():
         return
 
     selected_metrics = []
+    selected_mitigation_techniques = []
+    concerns_notions = defaultdict(list)
+    concerns_notions_vis = defaultdict(list)
     for concern in concerns:
-        with st.expander(
-            f"{concern['label']}. {concern['definition']}", expanded=False
-        ):
-            for notion in get_fairness_notions(concern["iri"]):
+        for notion in get_fairness_notions(concern["iri"]):
+            concerns_notions[notion['label']].append(concern["label"]) #notion
+
+    for concern in concerns:
+        #with st.expander(
+        #    f"{concern['label']}. {concern['definition']}", expanded=False
+        #):
+        
+        for notion in get_fairness_notions(concern["iri"]):
+            if notion["label"] not in concerns_notions_vis:
+                concerns_notions_vis[notion['label']].append(str(concern["iri"]).split("#")[-1]) #notion
+            
                 with st.expander(f"{notion['label']}", expanded=False):
+                    concern_badges = "".join(
+                        f"""<span style="
+                            display:inline-block;
+                            background-color:#e0e7ff;
+                            color:#3730a3;
+                            border-radius:12px;
+                            padding:2px 10px;
+                            margin:2px 6px 2px 0;
+                            font-size:14px;
+                            font-weight:600;
+                        ">{concern_label}</span>"""
+                        for concern_label in concerns_notions[notion["label"]]
+                    )
+                    st.markdown(
+                        f"""
+                        <div style="margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                            <span style="font-size:12px; color:#6b7280; margin-right:4px;">Arises from:</span>
+                            {concern_badges}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                     for metric in get_fairness_metrics(notion["iri"]):
+                        metric_key = (
+                            f"metric_{concern['iri']}_{notion['iri']}_{metric['iri']}"
+                        )
                         metric_checked = render_cascade_checkbox(
                             metric["label"],
-                            key=f"metric_{concern['iri']}_{notion['iri']}_{metric['iri']}",
+                            key=metric_key,
                             level=2,
                         )
                         if metric_checked:
                             selected_metrics.append(metric["iri"])
+                            for technique in get_mitigation_techniques(metric["iri"]):
+                                technique_checked = render_cascade_checkbox(
+                                    technique["label"],
+                                    key=f"{metric_key}_{technique['iri']}",
+                                    level=3,
+                                )
+                                if technique_checked:
+                                    selected_mitigation_techniques.append(
+                                        technique["iri"]
+                                    )
     st.session_state["selected_fairness_metrics"] = selected_metrics
+    st.session_state["selected_mitigation_techniques"] = (
+        selected_mitigation_techniques
+    )
 
 
 # Renders `questions` as a top-to-bottom decision tree: each question is a
@@ -277,10 +344,12 @@ def resource_aware_section():
 # Step 2: definition of the requirements dimensions to be satisfied according to the AI product design objectives
 def show_new_prod_requirements():
     st.session_state["page"] = "new_prod"
+    render_section_header("AI system's requirements dimensions")
     checklist_requirements = st.multiselect(
         "AI system's requirements dimensions",
         requirements_dimensions,
         ["Baseline", "Robustness"],
+        label_visibility="collapsed",
     )
 
 
@@ -376,7 +445,7 @@ def generate_prod_action(ai_prod_desc):
 if __name__ == "__main__":
     ai_prod_name, ai_prod_desc = fairness_settings()
     tab1, tab2 = st.tabs(
-        ["Resource-aware selection flow for bias mitigation", "Fairness Concerns"]
+        ["1.Resource-aware selection flow for bias mitigation", "2.Fairness Concerns"]
     )
     with tab1:
         resource_aware_section()

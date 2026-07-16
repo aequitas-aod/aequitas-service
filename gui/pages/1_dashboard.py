@@ -18,7 +18,8 @@ platform_list = ["local", "dh"]
 
 def show_dashboard(current_product, current_framework):
     st.title(
-        "Dashboard: AI Product Operations by Requirements Dimensions", anchor="dashboard"
+        "Dashboard: AI Product Operations by Requirements Dimensions",
+        anchor="dashboard",
     )
     current_product = st.sidebar.selectbox("AI Products list", use_cases_list)
     current_framework = st.sidebar.selectbox(
@@ -56,7 +57,7 @@ def show_operations_status(pipeline_configs, requirement, status):
                     not_active = list(
                         filter(lambda x: x["operation_type"] == op_type, status)
                     )[0]["not_active"]
-                    
+
                     st.markdown(
                         f"""
                             <div style="

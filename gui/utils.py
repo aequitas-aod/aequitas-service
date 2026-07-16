@@ -98,6 +98,20 @@ WHERE {{
 }}
 """
 
+# Uses the permissive `enforces` relation (not the SWRL-derived
+# `mitigatedWith`, which needs a reasoning pass that hasn't been run against
+# this ontology) mirroring the `measures`/`isQuantifiedBy` choice made for
+# FAIRNESS_METRIC_QUERY above. See "Retriving relevant mitigation
+# techniques" in sparql_toolQ.md.
+MITIGATION_TECHNIQUE_QUERY = """
+PREFIX core: <https://purl.org/fairops/core#>
+
+SELECT DISTINCT ?mitTech
+WHERE {{
+    ?mitTech core:enforces <{metric_iri}> .
+}}
+"""
+
 
 @st.cache_resource
 def _load_ontology_graph():
@@ -173,6 +187,14 @@ def get_fairness_metrics(notion_iri):
     iris = {str(row.fm) for row in graph.query(query)}
     metrics = [{"iri": iri, "label": label_for_iri(iri)} for iri in iris]
     return sorted(metrics, key=lambda m: m["label"])
+
+
+def get_mitigation_techniques(metric_iri):
+    graph = _load_ontology_graph()
+    query = MITIGATION_TECHNIQUE_QUERY.format(metric_iri=metric_iri)
+    iris = {str(row.mitTech) for row in graph.query(query)}
+    techniques = [{"iri": iri, "label": label_for_iri(iri)} for iri in iris]
+    return sorted(techniques, key=lambda t: t["label"])
 
 
 def session_state_params(current_product, current_framework):
