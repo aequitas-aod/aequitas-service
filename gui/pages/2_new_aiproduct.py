@@ -244,8 +244,26 @@ def render_resource_aware_flow(questions):
                 None,
             )
             if result_entry:
-                st.caption(
-                    f"↳ Recommended mitigation category: **{result_entry['action']}**"
+                st.markdown(
+                    f"""
+                    <div style="
+                        margin:8px 0 16px;
+                        padding:10px 16px;
+                        background-color:#ecfdf5;
+                        border-left:4px solid #10b981;
+                        border-radius:6px;
+                        display:flex;
+                        align-items:center;
+                        gap:10px;
+                    ">
+                        <span style="font-size:18px;">➜</span>
+                        <span style="font-size:16px; color:#065f46;">
+                            Recommended mitigation category:
+                            <strong style="font-size:18px;">{result_entry['action']}</strong>
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
                 )
     return answers
 

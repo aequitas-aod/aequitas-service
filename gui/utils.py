@@ -351,6 +351,10 @@ def populate_stages(pipeline_configs, createview=False):
                             gap:10px;
                         ">
                             {op_type.upper().replace("_", " ")}
+                            </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                             # <span style="
                             #     display:inline-flex;
                             #     align-items:center;
@@ -365,9 +369,5 @@ def populate_stages(pipeline_configs, createview=False):
                             #     padding:2px 4px;
                             #     flex-shrink:0;
                             #     margin-left:auto;
-                            # ">{article}</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                            # ">{article}</span>                                             
     return selected_operations
