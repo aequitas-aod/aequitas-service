@@ -137,9 +137,9 @@ def fairness_requirements_section():
         #):
         
         for notion in get_fairness_notions(concern["iri"]):
-            if notion["label"] not in concerns_notions_vis:
+            notion_metrics = get_fairness_metrics(notion["iri"])
+            if notion["label"] not in concerns_notions_vis and len(notion_metrics) > 0:
                 concerns_notions_vis[notion['label']].append(str(concern["iri"]).split("#")[-1]) #notion
-            
                 with st.expander(f"{notion['label']}", expanded=False):
                     concern_badges = "".join(
                         f"""<span style="
@@ -163,7 +163,7 @@ def fairness_requirements_section():
                         """,
                         unsafe_allow_html=True,
                     )
-                    for metric in get_fairness_metrics(notion["iri"]):
+                    for metric in notion_metrics:
                         metric_key = (
                             f"metric_{concern['iri']}_{notion['iri']}_{metric['iri']}"
                         )
@@ -444,13 +444,16 @@ def generate_prod_action(ai_prod_desc):
 
 if __name__ == "__main__":
     ai_prod_name, ai_prod_desc = fairness_settings()
-    tab1, tab2 = st.tabs(
-        ["1.Resource-aware selection flow for bias mitigation", "2.Fairness Concerns"]
-    )
-    with tab1:
-        resource_aware_section()
-    with tab2:
-        fairness_requirements_section()
-    lifecycle_stages()
-    show_new_prod_requirements()
+    with st.container(border=True):
+        tab1, tab2 = st.tabs(
+            ["1.Resource-aware selection flow for bias mitigation", "2.Fairness Concerns"]
+        )
+        with tab1:
+            resource_aware_section()
+        with tab2:
+            fairness_requirements_section()
+    with st.container(border=True):
+        lifecycle_stages()
+    with st.container(border=True):
+        show_new_prod_requirements()
     generate_prod_action(ai_prod_desc)

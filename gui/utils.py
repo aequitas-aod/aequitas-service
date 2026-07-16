@@ -351,21 +351,21 @@ def populate_stages(pipeline_configs, createview=False):
                             gap:10px;
                         ">
                             {op_type.upper().replace("_", " ")}
-                            <span style="
-                                display:inline-flex;
-                                align-items:center;
-                                justify-content:center;
-                                min-width:36px;
-                                height:36px;
-                                border-radius:50%;
-                                background-color:#60a5fa;
-                                color:#ffffff;
-                                font-size:12px;
-                                font-weight:700;
-                                padding:2px 4px;
-                                flex-shrink:0;
-                                margin-left:auto;
-                            ">{article}</span>
+                            # <span style="
+                            #     display:inline-flex;
+                            #     align-items:center;
+                            #     justify-content:center;
+                            #     min-width:36px;
+                            #     height:36px;
+                            #     border-radius:50%;
+                            #     background-color:#60a5fa;
+                            #     color:#ffffff;
+                            #     font-size:12px;
+                            #     font-weight:700;
+                            #     padding:2px 4px;
+                            #     flex-shrink:0;
+                            #     margin-left:auto;
+                            # ">{article}</span>
                         </div>
                         """,
                         unsafe_allow_html=True,
