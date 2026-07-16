@@ -42,3 +42,19 @@ From the repository root:
    streamlit run gui/app.py
    ```
 
+## GUI Overview
+
+The Streamlit interface implements a **Compliance Assessment tool**. After entering the AI product name/description and selecting the Application Domain, AI Task, and AI Type of Use (populated from the fairops ontology), the tool exposes two tabs:
+
+### 1. Resource-aware selection flow for bias mitigation
+
+A guided questionnaire (authorization/resources, access to training data, ability to modify the dataset or reweight/resample instances, available training scope) that walks the user to a **recommended mitigation category**. Below it, the AI lifecycle stages and operations (data preparation, modelling, operationalization) are listed so the relevant ones can be selected.
+
+![Resource-aware selection flow and AI lifecycle stages](static/compl_tool_resource_aware.png)
+
+### 2. Fairness Concerns
+
+Based on the selected AI Type of Use, this tab lists the relevant fairness notions (e.g. Equal Opportunity, Statistical Parity, Equalized Odds, Calibration), each expandable to show the concerns it arises from (e.g. Erasure, Misrepresentation) and the associated fairness metrics to apply (e.g. Outcome Unfairness) and mitigation techniques (e.g. Reweighing).
+
+![Fairness Concerns tab](static/compl_tool_fainess_notions.png)
+
