@@ -40,6 +40,9 @@ st.markdown(
         font-size: 20px;
         font-weight: 600;
     }
+    .stButton > button {
+        border-radius: 20px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -184,6 +187,39 @@ def fairness_requirements_section():
                                     selected_mitigation_techniques.append(
                                         technique["iri"]
                                     )
+
+                    notion_key = str(notion["iri"]).split("#")[-1]
+                    show_custom_metric_key = f"show_custom_metric_{notion_key}"
+                    if show_custom_metric_key not in st.session_state:
+                        st.session_state[show_custom_metric_key] = False
+
+                    btn_col, _ = st.columns([3, 9])
+                    with btn_col:
+                        if st.button(
+                            "➕ Add custom metric",
+                            key=f"add_custom_metric_btn_{notion_key}",
+                        ):
+                            st.session_state[show_custom_metric_key] = (
+                                not st.session_state[show_custom_metric_key]
+                            )
+
+                    if st.session_state[show_custom_metric_key]:
+                        with st.expander("Define custom metric", expanded=True):
+                            st.text_input(
+                                "Custom metric name",
+                                key=f"custom_metric_name_{notion_key}",
+                            )
+                            st.text_area(
+                                "Custom metric code",
+                                key=f"custom_metric_code_{notion_key}",
+                                height=220,
+                                placeholder=(
+                                    "def compute_metric(y_true, y_pred, sensitive_features):\n"
+                                    "    # implement the custom fairness metric\n"
+                                    "    return value"
+                                ),
+                            )
+
     st.session_state["selected_fairness_metrics"] = selected_metrics
     st.session_state["selected_mitigation_techniques"] = (
         selected_mitigation_techniques
