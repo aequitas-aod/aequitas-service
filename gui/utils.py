@@ -103,15 +103,41 @@ WHERE {{
 # this ontology) mirroring the `measures`/`isQuantifiedBy` choice made for
 # FAIRNESS_METRIC_QUERY above. See "Retriving relevant mitigation
 # techniques" in sparql_toolQ.md.
-MITIGATION_TECHNIQUE_QUERY = """
+MITIGATION_TECHNIQUE_CATEGOERY_QUERY = """
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX indiv: <https://purl.org/fairops/indiv#>
+
+SELECT ?individual ?subclass
+WHERE {
+    ?individual rdf:type ?subclass .
+    ?subclass rdfs:subClassOf* core:DataGeneration .
+}
+"""
+
+# Mirrors the "Retriving relevant mitigation techniques" query in
+# sparql_toolQ.md, but parameterized by {concern_iri} instead of the
+# hardcoded core:BiasPerpetuation example. Uses the SWRL-derived
+# `mitigatedWith` relation, so it only returns results once the ontology's
+# reasoning pass has been run to materialize that relation.
+MITIGATION_TECHNIQUE_FOR_CONCERN_QUERY = """
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX indiv: <https://purl.org/fairops/indiv#>
 
 SELECT DISTINCT ?mitTech
 WHERE {{
     ?mitTech core:enforces <{metric_iri}> .
 }}
 """
-
 
 @st.cache_resource
 def _load_ontology_graph():
@@ -189,11 +215,13 @@ def get_fairness_metrics(notion_iri):
     return sorted(metrics, key=lambda m: m["label"])
 
 
-def get_mitigation_techniques(metric_iri):
+def get_mitigation_techniques_for_concern(concern_iri):
     graph = _load_ontology_graph()
-    query = MITIGATION_TECHNIQUE_QUERY.format(metric_iri=metric_iri)
+    query = MITIGATION_TECHNIQUE_FOR_CONCERN_QUERY.format(metric_iri=concern_iri)
     iris = {str(row.mitTech) for row in graph.query(query)}
     techniques = [{"iri": iri, "label": label_for_iri(iri)} for iri in iris]
+    if len(techniques) == 0:
+        techniques = [{"iri": "N/A", "label": "Mitigation sample"}]
     return sorted(techniques, key=lambda t: t["label"])
 
 
@@ -307,11 +335,59 @@ def render_cascade_question(text, options, key, level=0):
     return answer
 
 
-def populate_stages(pipeline_configs, createview=False):
-    colors = ["#dbeafe", "#bfdbfe", "#93c5fd"]
+# Stage -> level/group/colors, matching the pre/in/post-processing
+# mitigation groups (see MITIGATION_GROUP_STYLES in
+# pages/2_new_aiproduct.py): yellow for data_preparation (Pre-processing,
+# level 1), green for modelling (In-processing, level 2), blue for
+# operationalization (Post-processing, level 3). `level` orders the stages
+# so populate_stages() can tell which ones sit "before" a recommended
+# mitigation group.
+STAGE_MITIGATION_STYLES = {
+    "data_preparation": {
+        "level": 1,
+        "group": "Pre-processing",
+        "bg": "#fef9c3",
+        "border": "#eab308",
+    },
+    "modelling": {
+        "level": 2,
+        "group": "In-processing",
+        "bg": "#dcfce7",
+        "border": "#10b981",
+    },
+    "operationalization": {
+        "level": 3,
+        "group": "Post-processing",
+        "bg": "#dbeafe",
+        "border": "#3b82f6",
+    },
+}
+
+# Muted style applied to stages that come before the resource-aware flow's
+# recommended mitigation group -- their operations are shown read-only and
+# forced unselected rather than colored per STAGE_MITIGATION_STYLES.
+DISABLED_STAGE_STYLE = {"bg": "#f3f4f6", "border": "#d1d5db"}
+
+_DEFAULT_STAGE_META = {"level": 0, "group": None, "bg": "#dbeafe", "border": "#3b82f6"}
+
+
+def populate_stages(pipeline_configs, createview=False, recommended_group=None):
+    recommended_level = next(
+        (
+            meta["level"]
+            for meta in STAGE_MITIGATION_STYLES.values()
+            if meta["group"] == recommended_group
+        ),
+        None,
+    )
     cols = st.columns(3)
     selected_operations = {}
     for i, stage in enumerate(pipeline_configs["ai_operations"]):
+        stage_meta = STAGE_MITIGATION_STYLES.get(stage["stage"], _DEFAULT_STAGE_META)
+        is_read_only = (
+            recommended_level is not None and stage_meta["level"] < recommended_level
+        )
+        stage_style = DISABLED_STAGE_STYLE if is_read_only else stage_meta
         with cols[i]:
             for j, operation in enumerate(stage["operations"]):
                 op_type = list(operation.keys())[0]
@@ -324,11 +400,19 @@ def populate_stages(pipeline_configs, createview=False):
                         st.markdown(
                             "<div style='height:14px'></div>", unsafe_allow_html=True
                         )
+                        checkbox_key = f"op_select_{op_type}"
+                        if is_read_only:
+                            # Force the persisted widget value back to
+                            # unselected -- setting `value=` alone only seeds
+                            # a *new* key, it won't override state from a
+                            # previous, non-restricted run.
+                            st.session_state[checkbox_key] = False
                         checked = st.checkbox(
                             op_type,
-                            value=True,
-                            key=f"op_select_{op_type}",
+                            value=not is_read_only,
+                            key=checkbox_key,
                             label_visibility="collapsed",
+                            disabled=is_read_only,
                         )
                     selected_operations[op_type] = checked
                     card_width -= 60
@@ -336,6 +420,9 @@ def populate_stages(pipeline_configs, createview=False):
                     card_col = st.container()
 
                 with card_col:
+                    label = op_type.upper().replace("_", " ")
+                    if is_read_only:
+                        label = f"🔒 {label}"
                     st.markdown(
                         f"""
                         <div style="
@@ -343,14 +430,16 @@ def populate_stages(pipeline_configs, createview=False):
                             height:50px;
                             overflow-y:auto;
                             width:{card_width}px;
-                            background-color:#dbeafe;
+                            background-color:{stage_style['bg']};
+                            border-left:4px solid {stage_style['border']};
                             border-radius:10px;
                             padding:10px;
                             display:flex;
                             align-items:center;
                             gap:10px;
+                            opacity:{0.55 if is_read_only else 1};
                         ">
-                            {op_type.upper().replace("_", " ")}
+                            {label}
                             </div>
                         """,
                         unsafe_allow_html=True,

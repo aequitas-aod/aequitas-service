@@ -14,7 +14,7 @@ from utils import (
     get_fairness_concerns,
     get_fairness_notions,
     get_fairness_metrics,
-    get_mitigation_techniques,
+    get_mitigation_techniques_for_concern,
     render_cascade_checkbox,
     render_cascade_question,
 )
@@ -106,14 +106,17 @@ def fairness_settings():
 
 def lifecycle_stages():
     render_section_header("AI system's stages and operations")
-    selected_operations = populate_stages(pipeline_configs, createview=True)
+    recommended_group = st.session_state.get("recommended_mitigation_group")
+    selected_operations = populate_stages(
+        pipeline_configs, createview=True, recommended_group=recommended_group
+    )
     st.session_state["selected_operations"] = selected_operations
 
 
 # Step 1b: cascading fairness requirements for the selected AI Type of Use.
-# Checking a Fairness Concern reveals its Fairness Notions; checking a Notion
-# reveals the Fairness Metrics that measure it; checking a Metric reveals the
-# Mitigation Techniques that enforce it 
+# Checking a Fairness Concern reveals its Fairness Notions; each Notion's
+# expander shows its Fairness Metrics and the concern's Mitigation
+# Techniques (via MITIGATION_TECHNIQUE_FOR_CONCERN_QUERY) side by side.
 def fairness_requirements_section():
     st.write("Relevant fairness requirements for the selected AI Type of Use")
     ai_type_of_use_iri = st.session_state.get("ai_type_of_use")
@@ -166,27 +169,45 @@ def fairness_requirements_section():
                         """,
                         unsafe_allow_html=True,
                     )
-                    for metric in notion_metrics:
-                        metric_key = (
-                            f"metric_{concern['iri']}_{notion['iri']}_{metric['iri']}"
+
+                    metrics_col, mitigation_col = st.columns(2)
+                    with metrics_col:
+                        st.markdown(
+                            "<span style='font-size:12px; color:#6b7280;'>Metrics</span>",
+                            unsafe_allow_html=True,
                         )
-                        metric_checked = render_cascade_checkbox(
-                            metric["label"],
-                            key=metric_key,
-                            level=2,
+                        for metric in notion_metrics:
+                            metric_key = (
+                                f"metric_{concern['iri']}_{notion['iri']}_{metric['iri']}"
+                            )
+                            metric_checked = render_cascade_checkbox(
+                                metric["label"],
+                                key=metric_key,
+                                level=0,
+                            )
+                            if metric_checked:
+                                selected_metrics.append(metric["iri"])
+
+                    with mitigation_col:
+                        st.markdown(
+                            "<span style='font-size:12px; color:#6b7280;'>Mitigation techniques</span>",
+                            unsafe_allow_html=True,
                         )
-                        if metric_checked:
-                            selected_metrics.append(metric["iri"])
-                            for technique in get_mitigation_techniques(metric["iri"]):
-                                technique_checked = render_cascade_checkbox(
-                                    technique["label"],
-                                    key=f"{metric_key}_{technique['iri']}",
-                                    level=3,
+                        for technique in get_mitigation_techniques_for_concern(
+                            concern["iri"]
+                        ):
+                            technique_key = (
+                                f"technique_{concern['iri']}_{notion['iri']}_{technique['iri']}"
+                            )
+                            technique_checked = render_cascade_checkbox(
+                                technique["label"],
+                                key=technique_key,
+                                level=0,
+                            )
+                            if technique_checked:
+                                selected_mitigation_techniques.append(
+                                    technique["iri"]
                                 )
-                                if technique_checked:
-                                    selected_mitigation_techniques.append(
-                                        technique["iri"]
-                                    )
 
                     notion_key = str(notion["iri"]).split("#")[-1]
                     show_custom_metric_key = f"show_custom_metric_{notion_key}"
@@ -224,6 +245,75 @@ def fairness_requirements_section():
     st.session_state["selected_mitigation_techniques"] = (
         selected_mitigation_techniques
     )
+
+
+# Group -> column color, in pre/in/post-processing order, per
+# map_mitigation_recommendations()'s "group" field.
+MITIGATION_GROUP_STYLES = {
+    "Pre-processing": {"bg": "#fef9c3", "border": "#eab308", "text": "#854d0e"},
+    "In-processing": {"bg": "#dcfce7", "border": "#10b981", "text": "#065f46"},
+    "Post-processing": {"bg": "#dbeafe", "border": "#3b82f6", "text": "#1e3a8a"},
+}
+
+
+# Renders the recommended mitigation `category` (e.g. "A") as a 3-column
+# row -- one column per group in MITIGATION_GROUP_STYLES -- highlighting
+# only the column matching the category's group (looked up via
+# map_mitigation_recommendations()) and leaving the other two muted.
+def render_recommended_mitigation_category(category):
+    category_info = {
+        m["category"]: m for m in map_mitigation_recommendations()
+    }.get(category)
+    group = category_info["group"] if category_info else None
+    description = category_info["description"] if category_info else ""
+
+    # Read by lifecycle_stages() to grey out / disable the operations
+    # belonging to stages that precede this recommended group.
+    st.session_state["recommended_mitigation_category"] = category
+    st.session_state["recommended_mitigation_group"] = group
+
+    columns = st.columns(len(MITIGATION_GROUP_STYLES))
+    for col, (group_name, style) in zip(columns, MITIGATION_GROUP_STYLES.items()):
+        with col:
+            if group_name == group:
+                st.markdown(
+                    f"""
+                    <div style="
+                        margin:8px 0 16px;
+                        padding:10px 16px;
+                        background-color:{style['bg']};
+                        border-left:4px solid {style['border']};
+                        border-radius:6px;
+                        min-height:78px;
+                    ">
+                        <div style="font-size:12px; color:{style['text']}; font-weight:700; text-transform:uppercase; margin-bottom:6px;">
+                            {group_name}
+                        </div>
+                        <div style="font-size:16px; color:{style['text']};">
+                            ➜ <strong style="font-size:18px;">{category}</strong>  {description}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f"""
+                    <div style="
+                        margin:8px 0 16px;
+                        padding:10px 16px;
+                        background-color:#f9fafb;
+                        border-left:4px solid #e5e7eb;
+                        border-radius:6px;
+                        min-height:88px;
+                    ">
+                        <div style="font-size:12px; color:#9ca3af; font-weight:700; text-transform:uppercase;">
+                            {group_name}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
 
 # Renders `questions` as a top-to-bottom decision tree: each question is a
@@ -280,27 +370,7 @@ def render_resource_aware_flow(questions):
                 None,
             )
             if result_entry:
-                st.markdown(
-                    f"""
-                    <div style="
-                        margin:8px 0 16px;
-                        padding:10px 16px;
-                        background-color:#ecfdf5;
-                        border-left:4px solid #10b981;
-                        border-radius:6px;
-                        display:flex;
-                        align-items:center;
-                        gap:10px;
-                    ">
-                        <span style="font-size:18px;">➜</span>
-                        <span style="font-size:16px; color:#065f46;">
-                            Recommended mitigation category:
-                            <strong style="font-size:18px;">{result_entry['action']}</strong>
-                        </span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                render_recommended_mitigation_category(result_entry["action"])
     return answers
 
 
@@ -394,6 +464,22 @@ def resource_aware_section():
     st.session_state["resource_aware_answers"] = answers
     return questions
 
+def map_mitigation_recommendations():
+    mitigation_categories=[
+        {"category": "A", "description": "Data & Feature interventions", "group": "Pre-processing"},
+        {"category": "B", "description": "Data-only interventions", "group": "Pre-processing"},
+        {"category": "C", "description": "Reweighting or resampling", "group": "Pre-processing"},
+        {"category": "D", "description": "Data Acquisition or generation", "group": "Pre-processing"},
+
+        {"category": "E", "description": "Training from scratch with fairness objectives", "group": "In-processing"},
+        {"category": "F", "description": "Full fine-tuning with fairness objectives", "group": "In-processing"},
+        {"category": "G", "description": "Limited parameter tuning", "group": "In-processing"},
+
+        {"category": "H", "description": "Output-only post-processing", "group": "Post-processing"},
+        {"category": "I", "description": "Decision layer control", "group": "Post-processing"},
+        {"category": "J", "description": "Governance only", "group": "Post-processing"},
+    ]
+    return mitigation_categories
 
 # Step 2: definition of the requirements dimensions to be satisfied according to the AI product design objectives
 def show_new_prod_requirements():
