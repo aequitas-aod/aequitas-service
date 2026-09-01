@@ -1,9 +1,15 @@
 import os
+import ast
+import sys
 import re
 from dotenv import load_dotenv, find_dotenv
 import yaml
+import pandas as pd
 import streamlit as st
 from rdflib import Graph
+import importlib.util
+import importlib
+import inspect
 
 load_dotenv(find_dotenv())
 
@@ -12,6 +18,7 @@ parent_folder = os.path.dirname(current_folder)
 pipeline_definitions_folder = os.path.join(
     parent_folder, "framework/temlops/config/pipeline_definitions.yaml"
 )
+USE_CASES_FOLDER = os.path.join(parent_folder, "framework/temlops/use_cases")
 
 # Path to the fairops ontology (lives in the separate fairness_ontology/fairops
 # project). Override with the FAIROPS_ONTOLOGY_PATH env var if it's located
@@ -145,6 +152,203 @@ def _load_ontology_graph():
     graph.parse(FAIROPS_ONTOLOGY_PATH, format="turtle")
     graph.parse(FAIROPS_INDIVIDUALS_PATH, format="turtle")
     return graph
+
+
+def run_sparql_query(query):
+    """Execute an arbitrary SPARQL SELECT query against the fairops ontology
+    graph and return its results as a list of {var_name: value} dicts, one
+    per row, with values stringified (None for unbound variables)."""
+    graph = _load_ontology_graph()
+    result = graph.query(query)
+    return [
+        {str(var): (str(row[var]) if row[var] is not None else None) for var in result.vars}
+        for row in result
+    ]
+
+
+# Competency questions from the fairops ontology docs
+# (fairness_ontology/fairops/SPARQL queries/sparql_CQ.md), illustrated on the
+# example scenario described there: an AI-enabled hiring recommendation
+# system (Application Domain: Human Resources, AI Type of Use:
+# Recommendation, Fairness Concern: PopularItemsOverrecommended, Fairness
+# Notion: StatisticalParity).
+COMPETENCY_QUESTIONS = [
+    {
+        "id": "Q1",
+        "text": "Which legal requirements are applicable to the considered AI context?",
+        # {application_domain_iri} is bound at render time to the IRI
+        # currently selected in the "Application Domain" combobox (see
+        # "params" below and render_competency_questions()), so the query
+        # tracks whichever domain is picked instead of a hardcoded example.
+        "query": """PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?legalRequirement ?com
+WHERE {{
+    <{application_domain_iri}> core:triggers ?legalRequirement .
+    ?legalRequirement rdfs:comment ?com
+}}""",
+        # Maps each {placeholder} in "query" to the st.session_state key it
+        # should be formatted with.
+        "params": {"application_domain_iri": "application_domain"},
+    },
+    {
+        "id": "Q2",
+        "text": "Which fairness concerns are associated with the given AI type of use?",
+        "query": """PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT  DISTINCT ?fc ?def
+WHERE {
+    ?fc rdf:type ?type .
+    ?type rdfs:subClassOf* core:FairnessConcern .
+
+    ?fc core:arisesIn core:Recommendation ;
+        skos:definition ?def .
+}""",
+    },
+    {
+        "id": "Q3",
+        "text": "Which fairness notions address a specific concern?",
+        "query": """PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?notion ?def
+WHERE {
+    core:PopularItemsOverrecommended core:isAddressedWith ?notion .
+    ?notion core:scientificArtifactDescription ?def.
+}""",
+    },
+    {
+        "id": "Q4",
+        "text": "Which fairness notions conflict with a selected one?",
+        "query": """PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX indiv: <https://purl.org/fairops/indiv#>
+SELECT ?conflNotion
+WHERE {
+    indiv:StatisticalParity core:conflictsWith ?conflNotion .
+}""",
+    },
+    {
+        "id": "Q5",
+        "text": "Which fairness metrics are appropriate to a specific concern in the given AI context?",
+        "query": """PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?metric
+WHERE {
+    core:PopularItemsOverrecommended core:isQuantifiedBy ?metric .
+}""",
+    },
+    {
+        "id": "Q6",
+        "text": "Which mitigation techniques addressing a concern are operationally feasible under the available deployment constraints (no feasible retraining or fine-tuning action)?",
+        "query": """PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?mitTech ?def
+WHERE {
+    core:PopularItemsOverrecommended core:mitigatedWith ?mitTech .
+    ?mitTech core:scientificArtifactDescription ?def ;
+            rdf:type ?type .
+    ?type rdfs:subClassOf* ?rootMitTech .
+
+    FILTER(
+        ?rootMitTech IN (
+            core:GreyBoxScores,
+            core:BlackBoxDecisionOnly,
+            core:HumanOversightMitigation
+        )
+    )
+}""",
+    },
+    {
+        "id": "Q7",
+        "text": "Which evidence artifacts are required to support compliance and auditing?",
+        "query": """PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX core: <https://purl.org/fairops/core#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?evidenceArtifact ?def
+WHERE {
+    core:PopularItemsOverrecommended core:requires ?evidenceArtifact .
+    ?evidenceArtifact skos:definition ?def.
+}""",
+    },
+]
+
+
+def render_competency_questions():
+    """One row per fairops competency question: the question text plus a
+    button that runs its SPARQL query against the ontology graph and shows
+    the results underneath the row (kept in session_state so results persist
+    across reruns triggered by other widgets).
+
+    A question's "params" dict (placeholder -> session_state key) is
+    resolved and formatted into its "query" template at run time, so e.g. Q1
+    tracks whichever IRI is currently selected in the "Application Domain"
+    combobox. The button is disabled while a required selection is missing.
+    """
+    for cq in COMPETENCY_QUESTIONS:
+        params = cq.get("params", {})
+        missing = [
+            session_key
+            for session_key in params.values()
+            if not st.session_state.get(session_key)
+        ]
+
+        question_col, button_col = st.columns([9, 2], vertical_alignment="center")
+        with question_col:
+            st.markdown(f"**{cq['id']}.** {cq['text']}")
+        with button_col:
+            run_clicked = st.button(
+                "▶ Run query", key=f"run_cq_{cq['id']}", disabled=bool(missing)
+            )
+
+        results_key = f"cq_results_{cq['id']}"
+        if missing:
+            st.caption(f"Select a value for {', '.join(missing)} above to run this query.")
+        elif run_clicked:
+            format_kwargs = {
+                placeholder: st.session_state[session_key]
+                for placeholder, session_key in params.items()
+            }
+            query = cq["query"].format(**format_kwargs) if params else cq["query"]
+            try:
+                st.session_state[results_key] = run_sparql_query(query)
+            except Exception as exc:
+                st.session_state[results_key] = exc
+
+        results = st.session_state.get(results_key)
+        if isinstance(results, Exception):
+            st.error(f"Query failed: {results}")
+        elif results is not None:
+            if results:
+                st.dataframe(pd.DataFrame(results), use_container_width=True)
+            else:
+                st.info("Query returned no results.")
 
 
 def _humanize(local_name):
@@ -370,8 +574,66 @@ DISABLED_STAGE_STYLE = {"bg": "#f3f4f6", "border": "#d1d5db"}
 
 _DEFAULT_STAGE_META = {"level": 0, "group": None, "bg": "#dbeafe", "border": "#3b82f6"}
 
+def import_from_path(module_name, file_path):
+    """Import a module given its name and file path."""
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
-def populate_stages(pipeline_configs, createview=False, recommended_group=None):
+
+def load_method_content(
+    method_name,
+    current_product,
+    current_framework="local",
+    step_operations_module="data_preparation.py",
+):
+    product_operations_file = os.path.join(
+        USE_CASES_FOLDER,
+        current_product,
+        "src",
+        f"{current_framework}_platform",
+        step_operations_module,
+    )
+    curr_module = import_from_path("curr_module", product_operations_file)
+    func = getattr(curr_module, method_name)
+    source_text = inspect.getsource(func)
+    return source_text
+
+@st.cache_data(show_spinner=False)
+def load_aipc_config(current_product, current_framework):
+    """Full parsed aipc_<framework>.yaml for a use case (operations +
+    artifacts). Empty dict if the product hasn't been configured for that
+    framework yet."""
+    config_path = os.path.join(
+        USE_CASES_FOLDER, current_product, "metadata", f"aipc_{current_framework}.yaml"
+    )
+    if not os.path.exists(config_path):
+        return {}
+    with open(config_path, "r") as yaml_file:
+        return yaml.safe_load(yaml_file) or {}
+
+
+def get_operation_implementations(op_type, current_product, current_framework):
+    """aipc_*.yaml operation entries wired to a pipeline operation `type`
+    (e.g. "model_training") -- there can be several per type (baseline vs.
+    fairness-aware variants), see aipc_local.yaml."""
+    aipc_config = load_aipc_config(current_product, current_framework)
+    return [
+        entry
+        for entry in aipc_config.get("operations", [])
+        if entry.get("type") == op_type
+    ]
+
+
+def populate_stages(
+    pipeline_configs,
+    createview=False,
+    recommended_group=None,
+    current_product="recruitment",
+    current_framework="local",
+):
     recommended_level = next(
         (
             meta["level"]
@@ -381,7 +643,6 @@ def populate_stages(pipeline_configs, createview=False, recommended_group=None):
         None,
     )
     cols = st.columns(3)
-    selected_operations = {}
     for i, stage in enumerate(pipeline_configs["ai_operations"]):
         stage_meta = STAGE_MITIGATION_STYLES.get(stage["stage"], _DEFAULT_STAGE_META)
         is_read_only = (
@@ -391,72 +652,137 @@ def populate_stages(pipeline_configs, createview=False, recommended_group=None):
         with cols[i]:
             for j, operation in enumerate(stage["operations"]):
                 op_type = list(operation.keys())[0]
-                article = "10.2"
-                card_width = 450 - j * 40
+                articles = (operation[op_type] or {}).get("article") or []
+                label = op_type.upper().replace("_", " ")
 
                 if createview:
-                    checkbox_col, card_col = st.columns([1, 9], gap="small")
-                    with checkbox_col:
-                        st.markdown(
-                            "<div style='height:14px'></div>", unsafe_allow_html=True
-                        )
-                        checkbox_key = f"op_select_{op_type}"
-                        if is_read_only:
-                            # Force the persisted widget value back to
-                            # unselected -- setting `value=` alone only seeds
-                            # a *new* key, it won't override state from a
-                            # previous, non-restricted run.
-                            st.session_state[checkbox_key] = False
-                        checked = st.checkbox(
-                            op_type,
-                            value=not is_read_only,
-                            key=checkbox_key,
-                            label_visibility="collapsed",
-                            disabled=is_read_only,
-                        )
-                    selected_operations[op_type] = checked
-                    card_width -= 60
+                    _, card_col = st.columns([1, 9], gap="small")
                 else:
                     card_col = st.container()
-
+                if is_read_only:
+                    label = f"🔒 {label}"
                 with card_col:
-                    label = op_type.upper().replace("_", " ")
-                    if is_read_only:
-                        label = f"🔒 {label}"
+                    # Every operation is a real st.button styled to match the
+                    # colored rectangle (background/border/badges via the
+                    # `st-key-<key>` CSS hook + an absolute-positioned badge
+                    # overlay), so it triggers an in-place rerun on click.
+                    # A plain markdown div can't do this -- onclick doesn't
+                    # work here (Streamlit sanitizes unsafe_allow_html via
+                    # DOMPurify, which strips inline event-handler
+                    # attributes), so a real widget is the only way to get a
+                    # working click.
+                    card_key = f"op_card_{op_type}"
+                    btn_key = f"op_btn_{op_type}"
+                    badge_key = f"op_badge_{op_type}"
                     st.markdown(
                         f"""
-                        <div style="
-                            margin-left:{j*40}px;
-                            height:50px;
-                            overflow-y:auto;
-                            width:{card_width}px;
-                            background-color:{stage_style['bg']};
-                            border-left:4px solid {stage_style['border']};
-                            border-radius:10px;
-                            padding:10px;
-                            display:flex;
-                            align-items:center;
-                            gap:10px;
-                            opacity:{0.55 if is_read_only else 1};
-                        ">
-                            {label}
-                            </div>
+                        <style>
+                        .st-key-{card_key} {{
+                            position: relative;
+                            /* The badge lives in its own sub-block (needed
+                            for the position:relative escape trick below),
+                            which still eats the default 16px inter-element
+                            gap even though it renders nothing in normal
+                            flow -- zero it out. */
+                            gap: 0;
+                            {"margin-top: -8px;" if j > 0 else ""}
+                        }}
+                        .st-key-{btn_key} button {{
+                            background-color: {stage_style['bg']};
+                            border: 1px solid {stage_style['border']};
+                            opacity: {0.55 if is_read_only else 1};
+                            justify-content: flex-start;
+                            {"padding-top: 20px;" if articles else ""}
+                        }}
+                        .st-key-{btn_key} button p {{
+                            text-align: left;
+                            font-weight: 700;
+                        }}
+                        .st-key-{btn_key} button:hover:not(:disabled) {{
+                            border-color: {stage_style['border']};
+                            color: {stage_style['border']};
+                        }}
+                        /* Streamlit gives every element's own wrapper
+                        (.stElementContainer) position:relative by default,
+                        which -- being nearer than .st-key-{card_key} above --
+                        wins as the containing block for the badge's
+                        position:absolute div below, anchoring it to this
+                        badge's own (zero-height) flow slot right after the
+                        button instead of to the button itself. Neutralizing
+                        position here on both the keyed wrapper and its inner
+                        element-container lets the badge escape up to
+                        .st-key-{card_key}, whose box actually matches the
+                        button's. */
+                        .st-key-{badge_key}, .st-key-{badge_key} .stElementContainer {{
+                            position: static;
+                        }}
+                        </style>
                         """,
                         unsafe_allow_html=True,
                     )
-                            # <span style="
-                            #     display:inline-flex;
-                            #     align-items:center;
-                            #     justify-content:center;
-                            #     min-width:36px;
-                            #     height:36px;
-                            #     border-radius:50%;
-                            #     background-color:#60a5fa;
-                            #     color:#ffffff;
-                            #     font-size:12px;
-                            #     font-weight:700;
-                            #     padding:2px 4px;
-                            #     flex-shrink:0;
-                            #     margin-left:auto;
-                            # ">{article}</span>                                             
-    return selected_operations
+                    card = st.container(key=card_key)
+                    with card:
+                        clicked = st.button(
+                            label,
+                            key=btn_key,
+                            use_container_width=True,
+                            disabled=is_read_only,
+                        )
+                        if articles:
+                            # No blank lines between concatenated spans --
+                            # Streamlit's markdown renderer treats a blank
+                            # line inside unsafe HTML as a paragraph break
+                            # and wraps the next badge in a stray <p>,
+                            # breaking it out of the flex row (and out of
+                            # vertical alignment with the others).
+                            circles = "".join(
+                                f'<span style="width:20px; height:20px; '
+                                "border-radius:50%; background-color:#6b7280; "
+                                "color:#ffffff; display:flex; align-items:center; "
+                                "justify-content:center; font-size:0.65em; "
+                                'font-weight:600; flex-shrink:0;">'
+                                f"{art}</span>"
+                                for art in articles
+                            )
+                            badge_container = st.container(key=badge_key)
+                            with badge_container:
+                                st.markdown(
+                                    f"""
+                                    <div style="
+                                        position:absolute;
+                                        top:6px;
+                                        right:10px;
+                                        display:flex;
+                                        align-items:center;
+                                        gap:4px;
+                                        opacity:{0.55 if is_read_only else 1};
+                                        pointer-events:none;
+                                    "><span style="font-size:0.7em; color:#374151;">Art.</span>{circles}</div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+
+                    if clicked:
+                        # Loads the operation category's wired
+                        # implementation(s); show_operation_implementation()
+                        # (pages/2_new_aiproduct.py) renders them from here.
+                        st.session_state["selected_operation_implementation"] = {
+                            "op_type": op_type,
+                            "current_product": current_product,
+                            "current_framework": current_framework,
+                            "entries": get_operation_implementations(
+                                op_type, current_product, current_framework
+                            ),
+                        }
+
+def get_function_source(file_path, function_name):
+    with open(file_path, "r") as f:
+        source = f.read()
+    tree = ast.parse(source)
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == function_name:
+            start_line = node.lineno - 1
+            end_line = node.end_lineno
+            lines = source.splitlines()
+            return "\n".join(lines[start_line:end_line])
+    return None

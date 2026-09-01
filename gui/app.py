@@ -10,7 +10,13 @@ import pandas as pd
 import streamlit as st
 import importlib.util
 from pathlib import Path
-from utils import get_pipeline_operations, session_state_params
+from utils import (
+    get_pipeline_operations,
+    session_state_params,
+    load_method_content,
+    import_from_path,
+    get_function_source
+)
 from streamlit_ace import st_ace
 from streamlit_option_menu import option_menu
 from temlops.src.artifact_types import Data, Configuration, Report, Model
@@ -27,15 +33,6 @@ use_cases_list = os.listdir(USE_CASES_FOLDER)
 platform_list = ["local", "dh"]
 
 sys.path.append(USE_CASES_FOLDER)
-
-
-def import_from_path(module_name, file_path):
-    """Import a module given its name and file path."""
-    spec = importlib.util.spec_from_file_location(module_name, file_path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
 def stages_settings(stage):
@@ -500,38 +497,6 @@ def populate_artifacts(artifacts):
                 """,
                 unsafe_allow_html=True,
             )
-
-
-def load_method_content(
-    method_name,
-    current_product,
-    current_framework="local",
-    step_operations_module="data_preparation.py",
-):
-    product_operations_file = os.path.join(
-        USE_CASES_FOLDER,
-        current_product,
-        "src",
-        f"{current_framework}_platform",
-        step_operations_module,
-    )
-    curr_module = import_from_path("curr_module", product_operations_file)
-    func = getattr(curr_module, method_name)
-    source_text = inspect.getsource(func)
-    return source_text
-
-
-def get_function_source(file_path, function_name):
-    with open(file_path, "r") as f:
-        source = f.read()
-    tree = ast.parse(source)
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == function_name:
-            start_line = node.lineno - 1
-            end_line = node.end_lineno
-            lines = source.splitlines()
-            return "\n".join(lines[start_line:end_line])
-    return None
 
 
 def _resolve_vars(specs_list, data_artifacts, config_artifacts, model_artifacts):

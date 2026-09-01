@@ -12,9 +12,8 @@ ai_operations:
           output: 
             -Report
           article: 
-            - 10.1
-            - 10.2
-            - 10.3
+            - 9
+            - 10
           desc: "Generate reports with specific characteristics of training data. Its main purpose is to deliver an extended analysis of a dataset while allowing the data analysis to be exported in different formats such as html or json."
       - data_validation:
           input: 
@@ -22,18 +21,26 @@ ai_operations:
             - Configuration
           output: 
             - Status
+          article: 
+            - 10
           desc: "Validate the quality of training data to identify issues that could impact model performance. Measuring or validating data means to quantitatively describe or summarize the properties of a data collection. These metrics generally do not use ground truth labels and only measure the intrinsic characteristics of data. The most prominent example is descriptive statistics that summarizes a data collection by a group of unsupervised measures such as mean or median for central tendency, variance or minimum-maximum for dispersion, skewness for symmetry."
       - data_preprocessing:
           input:
             - Data
           output:
             - Data
+          article: 
+            - 10
+            - 15
           desc: "Apply data cleaning procedure, data augmentation, type conversion, analyze data distribution, evaluate bias or discrimination issues on data"
       - data_documentation:
           input:
             - Data
           output:
             - Documentation
+          article: 
+            - 11
+            - 13
           desc: "Generate human readable documentation in order to facilitate knowledge transfer and increase transparency"
 ### Modelling
   - stage: modelling
@@ -44,6 +51,9 @@ ai_operations:
           output: 
             - Data
             - Report
+          article: 
+            - 10
+            - 15
           desc: "Apply principal components analysis, understand feature importance"
       - model_training:
           input:
@@ -51,6 +61,10 @@ ai_operations:
             - Configuration
           output:
             - Function
+          article: 
+            - 9
+            - 10
+            - 15
           desc: "Training procedure that fits the model to the training data, or fine-tune a pre-trained model"
       - model_evaluation:
           input:
@@ -59,6 +73,9 @@ ai_operations:
             - Model
           output:
             - Report
+          article: 
+            - 9
+            - 15
           desc: "Apply evaluation strategies to identify and understand the quality and performance of the model"
       - model_validation:
           input:
@@ -66,12 +83,19 @@ ai_operations:
             - Configuration
           output:
             - Status
+          article: 
+            - 14
+            - 17
           desc: "Validate the quality of the model to decide if the model can be deployed"
       - model_documentation: 
           input:
             - Report
           output:
             - Documentation
+          article: 
+            - 11
+            - 12
+            - 13
           desc: "Generate human readable documentation in order to facilitate knowledge transfer and increase transparency"
 ### Operationalisation
   - stage: operationalization
@@ -82,6 +106,9 @@ ai_operations:
             - Configuration
           output:
             - Service
+          article: 
+            - 15
+            - 17
           desc: "Serve model outputs to the end users. It acts as a wrapper to the model artifacts and relevant parameters"
       - model_monitoring:
           input:
@@ -89,18 +116,25 @@ ai_operations:
             - Data
           output:
             - Logs
+          article: 
+            - 61
           desc: "Implement a function to deliver model outputs to the end users. It wraps the model artifacts and relevant parameters"
       - production_data_monitoring:
           input:
             - Data
           output:
             - Reports
+          article: 
+            - 61
           desc: "Procedure that monitors production data and computes metrics based on data characteristics"
       - system_monitoring:
           input:
             - Logs
           output:
             - Reports
+          article: 
+            - 14
+            - 61
           desc: "This implements application-level monitoring of the deployed service itself, such as a Flask web service or Kubernetes-hosted service."
       # guardrails
       - pre_inference_transformations:
@@ -108,12 +142,19 @@ ai_operations:
             - Data
           output:
             - Data
+          article: 
+            - 13
+            - 15
           desc: "Adjustments made to production data prior to feeding it into the model"
       - post_inference_transformations:
           input:
             - Data
           output:
             - Data
+          article: 
+            - 13
+            - 14
+            - 15
           desc: "Adjustments made to the models output to prevent data privacy breaches or to filter information"
 requirements_dimensions:
   - baseline

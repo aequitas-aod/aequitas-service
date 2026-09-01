@@ -29,6 +29,9 @@ from fairlib import DataFrame
 from fairlib.preprocessing import Reweighing, DisparateImpactRemover, LFR
 from fairlib.inprocessing import Fauci, AdversarialDebiasing
 
+import mlflow.sklearn
+from mlserver import MLModel, types
+
 FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
 DATA_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "data")
 MODEL_ARTIFACTS_PATH = os.path.join(FOLDER_PATH, "artifacts", "model")

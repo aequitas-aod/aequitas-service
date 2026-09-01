@@ -3,6 +3,10 @@ import pickle
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+
+import mlflow
+import mlflow.sklearn
+
 from temlops.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
 
 FOLDER_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -112,6 +116,8 @@ class ModelTabular(Model):
         model_path = os.path.join(MODEL_ARTIFACTS_PATH, self.filepath)
         with open(model_path, "wb") as model_file:
             pickle.dump(model, model_file, pickle.HIGHEST_PROTOCOL)
+        with mlflow.start_run(run_name="clf_with_equalized_odds") as run:
+            mlflow.sklearn.log_model(model, artifact_path="classifier")
 
 
 class DocumentationTabular(Documentation):

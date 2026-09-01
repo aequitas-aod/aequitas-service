@@ -3,6 +3,7 @@ sys.path.append("../../../../")
 
 import os
 import yaml
+import json
 import openml
 import numpy as np
 import pandas as pd
@@ -57,13 +58,122 @@ def data_profiling(data: Data, report: Report) -> Report:
     return report
     
 def data_profiling_custom(
-    data: Data, 
+    data_train: Data, 
     config: Configuration
     ):
-    data = DataTabular(data.__dict__)
+    data = DataTabular(data_train.__dict__)
     df = data.load_dataset()
-    pass
+    results = []
+    for act in config.actions.split(","):
+        action = act.strip()
+        result_meta = {"action": action}
+        if action == "summary":
+            result_meta["n_rows"] = int(df.shape[0])
+            result_meta["n_cols"] = int(df.shape[1])
+            result_meta["memory_mb"] = float(
+                df.memory_usage(deep=True).sum() / (1024 * 1024)
+            )
+        elif action == "dtypes":
+            result_meta["dtypes"] = df.dtypes.apply(lambda x: str(x)).to_dict()
+        elif action == "missing_values":
+            mv = df.isna().sum()
+            result_meta["missing_count"] = mv.to_dict()
+            result_meta["missing_pct"] = (mv / len(df)).round(4).to_dict()
+        elif action == "unique_values":
+            cols = df.columns.tolist()
+            uniques = {}
+            for c in cols:
+                if c in df.columns:
+                    uniques[c] = {
+                        "unique_count": int(df[c].nunique()),
+                        # "top": df[c].mode().iloc[0] if not df[c].mode().empty else None,
+                    }
+            result_meta["unique"] = uniques
+        elif action == "correlations":
+            numeric = df.select_dtypes(include=[np.number])
+            if numeric.shape[1] >= 2:
+                corr = numeric.corr()
+                result_meta["correlation_head"] = corr.round(3).iloc[:5, :5].to_dict()
+                # Save full correlation to file
+                corr.to_csv(
+                    os.path.join(
+                        REPORTS_ARTIFACTS_PATH, f"{config.dataset_name}_correlation.csv"
+                    )
+                )
+                # Save correlation image
+                fig, ax = plt.subplots(figsize=(8, 6))
+                sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+                ax.set_title(f"Correlation matrix {config.dataset_name}")
+                img_path = os.path.join(
+                    REPORTS_ARTIFACTS_PATH, f"{config.dataset_name}_correlation.png"
+                )
+                fig.savefig(img_path, bbox_inches="tight")
+                plt.close(fig)
 
+                result_meta["correlation_csv"] = (
+                    f"{config.dataset_name}_correlation.csv"
+                )
+                result_meta["correlation_png"] = img_path
+            else:
+                result_meta["note"] = "Not enough numeric columns for correlation."
+        elif action == "histograms":
+            cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            bins = 30
+            img_paths = []
+            for c in cols:
+                if c in df.columns and pd.api.types.is_numeric_dtype(df[c]):
+                    fig, ax = plt.subplots()
+                    df[c].dropna().hist(bins=bins, ax=ax)
+                    ax.set_title(f"Histogram {c}")
+                    img_path = os.path.join(
+                        REPORTS_ARTIFACTS_PATH, f"{config.dataset_name}_hist_{c}.png"
+                    )
+                    fig.savefig(img_path, bbox_inches="tight")
+                    plt.close(fig)
+                    img_paths.append(img_path)
+            result_meta["histograms"] = img_paths
+        elif action == "outliers":
+            cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            outliers = {}
+            for c in cols:
+                if c in df.columns and pd.api.types.is_numeric_dtype(df[c]):
+                    q1 = df[c].quantile(0.25)
+                    q3 = df[c].quantile(0.75)
+                    iqr = q3 - q1
+                    low = q1 - 1.5 * iqr
+                    high = q3 + 1.5 * iqr
+                    mask = (df[c] < low) | (df[c] > high)
+                    outliers[c] = {
+                        "n_outliers": int(mask.sum()),
+                        "low": float(low),
+                        "high": float(high),
+                    }
+            result_meta["outliers"] = outliers
+        elif action == "profile_report":
+            title = f"Profile report {config.dataset_name}"
+            profile = ProfileReport(df, title=title, explorative=True)
+            out_html = os.path.join(
+                REPORTS_ARTIFACTS_PATH, f"{config.dataset_name}_profile.html"
+            )
+            profile.to_file(out_html)
+            result_meta["profile_html"] = out_html
+        else:
+            result_meta["error"] = "action not implemented"
+        results.append(result_meta)
+        # Save results summary
+        report_final_path = os.path.join(
+            REPORTS_ARTIFACTS_PATH, f"{config.dataset_name}_final_report.json"
+        )
+        with open(report_final_path, "w", encoding="utf-8") as file:
+            json.dump(
+                {"actions": config.actions, "results": results},
+                file,
+                indent=2,
+                ensure_ascii=False,
+            )
+
+    return results
+ 
 ########################################################### Data Validation
     
 def data_validation_check_quantity(data: Data, config: Configuration, output_status: Status) -> Status:
@@ -158,7 +268,7 @@ if __name__ == "__main__":
         aipc_config = yaml.safe_load(f)
     operation = list(
         filter(
-            lambda x: x["id"] == "split_train_valid_test_data",
+            lambda x: x["id"] == "data_profiling_custom",
             aipc_config["operations"],
         )
     )[0]

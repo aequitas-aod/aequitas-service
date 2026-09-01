@@ -1,9 +1,12 @@
 # streamlit: page_name = "New AI Product"
 import os
+import sys
 import yaml
+import json
 import asyncio
 import pandas as pd
 import streamlit as st
+from streamlit_ace import st_ace
 from collections import defaultdict
 from utils import (
     populate_stages,
@@ -17,6 +20,11 @@ from utils import (
     get_mitigation_techniques_for_concern,
     render_cascade_checkbox,
     render_cascade_question,
+    render_competency_questions,
+    load_method_content,
+    load_aipc_config,
+    import_from_path,
+    get_function_source
 )
 from dotenv import load_dotenv, find_dotenv
 
@@ -51,7 +59,10 @@ st.markdown(
 
 def render_section_header(text):
     """Section title styled larger than the default st.write() body text."""
-    st.markdown(f"<p style='font-size:22px; font-weight:600;'>{text}</p>", unsafe_allow_html=True)
+    st.markdown(
+        f"<p style='font-size:22px; font-weight:600;'>{text}</p>",
+        unsafe_allow_html=True,
+    )
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
 parent_folder = os.path.dirname(current_folder)
@@ -59,6 +70,10 @@ parent_folder = os.path.dirname(parent_folder)
 pipeline_definitions_folder = os.path.join(
     parent_folder, "framework/temlops/config/pipeline_definitions.yaml"
 )
+USE_CASES_FOLDER = os.path.join(parent_folder, "framework/temlops/use_cases")
+TOOLS_CATALOG_FOLDER = os.path.join(parent_folder, "tools_catalog")
+sys.path.append(USE_CASES_FOLDER)
+
 
 # Step 1: definition of the necessary operations (active/inactive ops)
 with open(pipeline_definitions_folder, "r") as yaml_file:
@@ -101,16 +116,19 @@ def fairness_settings():
     st.session_state["application_domain"] = application_domain
     st.session_state["ai_task"] = ai_task
     st.session_state["ai_type_of_use"] = ai_type_of_use
+
+    render_section_header("Questions")
+    render_competency_questions()
+
     return ai_prod_name, ai_prod_desc
 
 
 def lifecycle_stages():
     render_section_header("AI system's stages and operations")
     recommended_group = st.session_state.get("recommended_mitigation_group")
-    selected_operations = populate_stages(
+    populate_stages(
         pipeline_configs, createview=True, recommended_group=recommended_group
     )
-    st.session_state["selected_operations"] = selected_operations
 
 
 # Step 1b: cascading fairness requirements for the selected AI Type of Use.
@@ -135,17 +153,19 @@ def fairness_requirements_section():
     concerns_notions_vis = defaultdict(list)
     for concern in concerns:
         for notion in get_fairness_notions(concern["iri"]):
-            concerns_notions[notion['label']].append(concern["label"]) #notion
+            concerns_notions[notion["label"]].append(concern["label"])  # notion
 
     for concern in concerns:
-        #with st.expander(
+        # with st.expander(
         #    f"{concern['label']}. {concern['definition']}", expanded=False
-        #):
-        
+        # ):
+
         for notion in get_fairness_notions(concern["iri"]):
             notion_metrics = get_fairness_metrics(notion["iri"])
             if notion["label"] not in concerns_notions_vis and len(notion_metrics) > 0:
-                concerns_notions_vis[notion['label']].append(str(concern["iri"]).split("#")[-1]) #notion
+                concerns_notions_vis[notion["label"]].append(
+                    str(concern["iri"]).split("#")[-1]
+                )  # notion
                 with st.expander(f"{notion['label']}", expanded=False):
                     concern_badges = "".join(
                         f"""<span style="
@@ -177,9 +197,7 @@ def fairness_requirements_section():
                             unsafe_allow_html=True,
                         )
                         for metric in notion_metrics:
-                            metric_key = (
-                                f"metric_{concern['iri']}_{notion['iri']}_{metric['iri']}"
-                            )
+                            metric_key = f"metric_{concern['iri']}_{notion['iri']}_{metric['iri']}"
                             metric_checked = render_cascade_checkbox(
                                 metric["label"],
                                 key=metric_key,
@@ -196,18 +214,14 @@ def fairness_requirements_section():
                         for technique in get_mitigation_techniques_for_concern(
                             concern["iri"]
                         ):
-                            technique_key = (
-                                f"technique_{concern['iri']}_{notion['iri']}_{technique['iri']}"
-                            )
+                            technique_key = f"technique_{concern['iri']}_{notion['iri']}_{technique['iri']}"
                             technique_checked = render_cascade_checkbox(
                                 technique["label"],
                                 key=technique_key,
                                 level=0,
                             )
                             if technique_checked:
-                                selected_mitigation_techniques.append(
-                                    technique["iri"]
-                                )
+                                selected_mitigation_techniques.append(technique["iri"])
 
                     notion_key = str(notion["iri"]).split("#")[-1]
                     show_custom_metric_key = f"show_custom_metric_{notion_key}"
@@ -242,9 +256,7 @@ def fairness_requirements_section():
                             )
 
     st.session_state["selected_fairness_metrics"] = selected_metrics
-    st.session_state["selected_mitigation_techniques"] = (
-        selected_mitigation_techniques
-    )
+    st.session_state["selected_mitigation_techniques"] = selected_mitigation_techniques
 
 
 # Group -> column color, in pre/in/post-processing order, per
@@ -261,9 +273,9 @@ MITIGATION_GROUP_STYLES = {
 # only the column matching the category's group (looked up via
 # map_mitigation_recommendations()) and leaving the other two muted.
 def render_recommended_mitigation_category(category):
-    category_info = {
-        m["category"]: m for m in map_mitigation_recommendations()
-    }.get(category)
+    category_info = {m["category"]: m for m in map_mitigation_recommendations()}.get(
+        category
+    )
     group = category_info["group"] if category_info else None
     description = category_info["description"] if category_info else ""
 
@@ -464,22 +476,267 @@ def resource_aware_section():
     st.session_state["resource_aware_answers"] = answers
     return questions
 
+
 def map_mitigation_recommendations():
-    mitigation_categories=[
-        {"category": "A", "description": "Data & Feature interventions", "group": "Pre-processing"},
-        {"category": "B", "description": "Data-only interventions", "group": "Pre-processing"},
-        {"category": "C", "description": "Reweighting or resampling", "group": "Pre-processing"},
-        {"category": "D", "description": "Data Acquisition or generation", "group": "Pre-processing"},
-
-        {"category": "E", "description": "Training from scratch with fairness objectives", "group": "In-processing"},
-        {"category": "F", "description": "Full fine-tuning with fairness objectives", "group": "In-processing"},
-        {"category": "G", "description": "Limited parameter tuning", "group": "In-processing"},
-
-        {"category": "H", "description": "Output-only post-processing", "group": "Post-processing"},
-        {"category": "I", "description": "Decision layer control", "group": "Post-processing"},
+    mitigation_categories = [
+        {
+            "category": "A",
+            "description": "Data & Feature interventions",
+            "group": "Pre-processing",
+        },
+        {
+            "category": "B",
+            "description": "Data-only interventions",
+            "group": "Pre-processing",
+        },
+        {
+            "category": "C",
+            "description": "Reweighting or resampling",
+            "group": "Pre-processing",
+        },
+        {
+            "category": "D",
+            "description": "Data Acquisition or generation",
+            "group": "Pre-processing",
+        },
+        {
+            "category": "E",
+            "description": "Training from scratch with fairness objectives",
+            "group": "In-processing",
+        },
+        {
+            "category": "F",
+            "description": "Full fine-tuning with fairness objectives",
+            "group": "In-processing",
+        },
+        {
+            "category": "G",
+            "description": "Limited parameter tuning",
+            "group": "In-processing",
+        },
+        {
+            "category": "H",
+            "description": "Output-only post-processing",
+            "group": "Post-processing",
+        },
+        {
+            "category": "I",
+            "description": "Decision layer control",
+            "group": "Post-processing",
+        },
         {"category": "J", "description": "Governance only", "group": "Post-processing"},
     ]
     return mitigation_categories
+
+
+# Renders whichever operation category was last clicked in the
+# "AI system's stages and operations" grid (populate_stages() stashes it
+# into st.session_state["selected_operation_implementation"]). There can be
+# several aipc_*.yaml entries wired to the same operation type (e.g.
+# baseline vs. fairness-aware model_training variants) -- one expander per
+# entry.
+def show_operation_implementation():
+    selection = st.session_state.get("selected_operation_implementation")
+    if not selection:
+        st.info("Click an operation above to inspect its implementation.")
+        return
+
+    op_type = selection["op_type"]
+    current_product = selection["current_product"]
+    current_framework = selection["current_framework"]
+
+    # Drafts added via the "Add new operation" button below, kept separate
+    # from `selection["entries"]` (re-read from the aipc_*.yaml config each
+    # time the operation card is clicked) so they survive reruns instead of
+    # being wiped by that re-read.
+    if "custom_operation_entries" not in st.session_state:
+        st.session_state["custom_operation_entries"] = {}
+    custom_entries = st.session_state["custom_operation_entries"].setdefault(op_type, [])
+    implementations = selection["entries"] + custom_entries
+
+    if not implementations:
+        st.info(f"No wired implementation found for operation '{op_type}' yet.")
+    else:
+        report_artifacts = load_aipc_config(current_product, current_framework).get(
+            "artifacts", {}
+        ).get("report", [])
+
+        for ind, entry in enumerate(implementations):
+            specs = entry["implementation"]["spec"]
+            method_name = specs["method_name"]
+            step_operations_module = os.path.basename(specs["path"])
+            framework = entry["implementation"].get("framework", current_framework)
+            inputs = specs.get("inputs", [])
+            outputs = specs.get("outputs", [])
+
+            with st.expander(f"{entry['id']}: {entry.get('name', '')}", expanded=False):
+                cols_oper = st.columns([7, 3])
+                with cols_oper[0]:
+                    tab1, tab2, tab3, tab4 = st.tabs(
+                        [
+                            "Code",
+                            "Input",
+                            "Output",
+                            "Produced artifact",
+                        ]
+                    )
+                    with tab1:
+                        st.write("This is the Code tab")
+                        run_method_name = method_name
+                        run_module = step_operations_module
+                        if framework == "dh":
+                            run_method_name = method_name + "_real"
+                            run_module = "dh_" + step_operations_module
+                        try:
+                            method_content = load_method_content(
+                                run_method_name,
+                                current_product,
+                                framework,
+                                run_module,
+                            )
+                        except Exception as exc:
+                            method_content = (
+                                f"# Could not load source for {run_method_name}: {exc}"
+                            )
+                        st_ace(
+                            value=method_content,
+                            language="python",
+                            theme="xcode",
+                            key=f"code_{op_type}_{ind}",
+                            height=300,
+                            font_size=14,
+                            show_gutter=True,
+                            readonly=False,
+                        )
+                    with tab2:
+                        st.write("This tab contains Input data that the methods receives")
+                        st_ace(
+                            value=json.dumps(inputs, indent=2),
+                            language="json",
+                            theme="xcode",
+                            key=f"input_{op_type}_{ind}",
+                            height=300,
+                            font_size=14,
+                            show_gutter=True,
+                            readonly=False,
+                        )
+                    with tab3:
+                        st.write("This tab contains Output data that the methods produces")
+                        st_ace(
+                            value=json.dumps(outputs, indent=2),
+                            language="json",
+                            theme="xcode",
+                            key=f"output_{op_type}_{ind}",
+                            height=300,
+                            font_size=14,
+                            show_gutter=True,
+                            readonly=False,
+                        )
+                    with tab4:
+                        import streamlit.components.v1 as components
+
+                        shown_any = False
+                        for output in outputs:
+                            if "report" not in output:
+                                continue
+                            report = next(
+                                (
+                                    r
+                                    for r in report_artifacts
+                                    if r["name"] == output["report"]
+                                ),
+                                None,
+                            )
+                            if not report:
+                                continue
+                            report_path = os.path.join(
+                                USE_CASES_FOLDER,
+                                current_product,
+                                "src",
+                                f"{framework}_platform",
+                                "artifacts",
+                                "report",
+                                report["config"]["filepath"],
+                            )
+                            if report_path.endswith("html") and os.path.exists(
+                                report_path
+                            ):
+                                shown_any = True
+                                with open(report_path, encoding="utf8") as report_f:
+                                    components.html(
+                                        report_f.read(),
+                                        width=1000,
+                                        height=1200,
+                                        scrolling=True,
+                                    )
+                        if not shown_any:
+                            st.info("No produced artifact preview available yet.")
+                with cols_oper[1]:
+                        st.write(
+                            "The following code is a recommended implementation for this operation, derived from a catalog of open-source tools."
+                        )
+                        tools_catalog = pd.read_csv(
+                            os.path.join(
+                                TOOLS_CATALOG_FOLDER, "tools_principles_catalog.csv"
+                            )
+                        )
+                        code_catalog = tools_catalog[
+                            tools_catalog["ai_operation"].isin([entry["type"]])
+                        ]
+                        print(code_catalog)
+                        for tool in code_catalog.itertuples():
+                            snippet_path = tool.code_snippet_path
+                            toolname = tool.tool
+                            documentation = tool.documentation
+                            file = os.path.join(
+                                TOOLS_CATALOG_FOLDER, snippet_path.split(":")[0]
+                            )
+                            method = snippet_path.split(":")[1]
+                            method_snippet = get_function_source(file, method)
+                            with st.expander(
+                                f"Tool suggestion: {toolname}", expanded=False
+                            ):
+                                st.markdown(
+                                    f"""
+                                        <a href="{documentation}" target="_blank">Tool documentation ↗</a>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                                st_ace(
+                                    value=method_snippet,
+                                    language="json",
+                                    theme="xcode",
+                                    key=f"suggestion_{ind}_{tool.Index}",
+                                    height=300,
+                                    font_size=14,
+                                    show_gutter=True,
+                                    readonly=False,
+                                )
+
+                if st.button("Run operation", key=f"run_op_{op_type}_{ind}"):
+                    pass
+
+    btn_col, _ = st.columns([3, 9])
+    with btn_col:
+        if st.button("➕ Add new operation", key=f"add_op_{op_type}"):
+            custom_entries.append(
+                {
+                    "id": f"draft-{len(custom_entries) + 1}",
+                    "name": "New operation",
+                    "type": op_type,
+                    "implementation": {
+                        "framework": current_framework,
+                        "spec": {
+                            "method_name": "",
+                            "path": "",
+                            "inputs": [],
+                            "outputs": [],
+                        },
+                    },
+                }
+            )
+            st.rerun()
+
 
 # Step 2: definition of the requirements dimensions to be satisfied according to the AI product design objectives
 def show_new_prod_requirements():
@@ -522,7 +779,6 @@ async def run_mcp_query(user_input):
         }
     )
     tools = await client.get_tools()  # await load_mcp_tools(client) #
-    print(tools)
     resources = await client.get_resources("mlops_tai_engineers")
     model_with_tools = model.bind_tools(tools)
     tool_node = ToolNode(tools)
@@ -576,7 +832,6 @@ def generate_prod_action(ai_prod_desc):
             ]
             plan_prompt = open(f"guided_ui/pages/plan.md", "r").read()
             ai_prod_desc = f"{plan_prompt}. \n\n Copy recursively the files and subdirectories inside the folder {template_aipc_folder} into the new AI product folder {new_prod_folder}.  \n\n  The selected operations are: {selected_operations}"
-            print(ai_prod_desc)
             answer = asyncio.run(run_mcp_query(ai_prod_desc))
             st.success("Operation completed successfully!")
             st.success(answer)
@@ -586,7 +841,10 @@ if __name__ == "__main__":
     ai_prod_name, ai_prod_desc = fairness_settings()
     with st.container(border=True):
         tab1, tab2 = st.tabs(
-            ["1.Resource-aware selection flow for bias mitigation", "2.Fairness Concerns"]
+            [
+                "1.Resource-aware selection flow for bias mitigation",
+                "2.Fairness Concerns",
+            ]
         )
         with tab1:
             resource_aware_section()
@@ -594,6 +852,7 @@ if __name__ == "__main__":
             fairness_requirements_section()
     with st.container(border=True):
         lifecycle_stages()
+        show_operation_implementation()
     with st.container(border=True):
         show_new_prod_requirements()
     generate_prod_action(ai_prod_desc)
