@@ -19,13 +19,19 @@ from use_cases.recruitment.src.local_platform.platform_artifacts import (
     DataTabular,
     ReportTabular,
     ModelTabular,
+    DocumentationTabular
 )
+
+import torch
+import torch.nn as nn
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from fairlib import DataFrame
 from fairlib.preprocessing import Reweighing, DisparateImpactRemover, LFR
 from fairlib.inprocessing import Fauci, AdversarialDebiasing
+
 
 def train_model_reweighing(data: Data, config: Configuration, model: Model) -> Model:
     dataset = DataTabular(data.__dict__).load_dataset()
@@ -89,79 +95,50 @@ def train_model_learning_fair_representations(
     return ModelTabular(model.__dict__).save_model(lfr_clf)
 
 
-def model_evaluation_fairness_disparate_impact_remover(
-    data_test: Data, config: Configuration, model: Model, report: Report
-) -> Report:
-    model_test = ModelTabular(model.__dict__).load_model()
-    report = ReportTabular(report.__dict__)
-    data = DataTabular(data_test.__dict__)
-    dataset = data.load_dataset()
-    X_test = dataset.drop(columns=[config.target], axis=1)
-    dir_pred = model_test.predict(X_test.drop(columns=[config.sensitive], axis=1))
 
-    dir_spd, dir_di = evaluate_fairness(
-        X_test,
-        dir_pred,
-        config.target,
-        config.sensitive,
-        config.positive_target,
-        config.favored_class,
+
+#################################### in-processing techniques
+class FauciMLP(nn.Module):
+    def __init__(self, input_dim, hidden_dim, hidden_layers, output_dim):
+        super().__init__()
+        layers = [nn.Linear(input_dim, hidden_dim), nn.ReLU()]
+        for _ in range(hidden_layers - 1):
+            layers += [nn.Linear(hidden_dim, hidden_dim), nn.ReLU()]
+        layers += [nn.Linear(hidden_dim, output_dim), nn.Sigmoid()]
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+
+def train_model_fauci(data: Data, config: Configuration, model: Model) -> Model:
+    dataset = DataTabular(data.__dict__).load_dataset()
+    X_train = dataset.drop(columns=[config.target_column]).copy(deep=True)
+    y_train = dataset[config.target_column].copy(deep=True)
+
+    train_fauci = X_train.copy()
+    train_fauci[config.target_column] = y_train
+    ds_fauci = DataFrame(train_fauci)
+    for col in ds_fauci.columns:
+        if ds_fauci[col].dtype == "object" or ds_fauci[col].dtype.name == "category":
+            ds_fauci[col], _ = pd.factorize(ds_fauci[col])
+    ds_fauci.targets, ds_fauci.sensitive = config.target_column, config.sensitive
+
+    torch.manual_seed(config.random_state)
+    base_model = FauciMLP(
+        input_dim=X_train.shape[1],
+        hidden_dim=config.hidden_dim,
+        hidden_layers=config.hidden_layers,
+        output_dim=1,
     )
-    report.save_report_dataframe(
-        pd.DataFrame(
-            [{"algorithm": model.filepath.split(".")[0], "spd": dir_spd, "di": dir_di}]
-        )
+    fauci_clf = Fauci(
+        torchModel=base_model,
+        fairness_regularization=config.fairness_regularization,
+        regularization_weight=config.regularization_weight,
     )
-    return report
+    fauci_clf.fit(ds_fauci, epochs=config.epochs, batch_size=config.batch_size)
 
-
-def model_evaluation_fairness_lfr(
-    data_test: Data, data_train: Data, config: Configuration, model: Model, report: Report
-) -> Report:
-    model_test = ModelTabular(model.__dict__).load_model()
-    report = ReportTabular(report.__dict__)
-    data = DataTabular(data_test.__dict__)
-    dataset_test = data.load_dataset()
-    data = DataTabular(data_train.__dict__)
-    dataset_train = data.load_dataset()
-    X_test = dataset_test.drop(columns=[config.target], axis=1)
-    X_train = dataset_train.drop(columns=[config.target], axis=1)
-    y_test = dataset_test[config.target]
-    y_train = dataset_train[config.target]
-
-    # Trasform test data
-    latent_dim = 8
-    lfr_proc = LFR(
-        input_dim=X_train.shape[1], latent_dim=latent_dim, output_dim=X_train.shape[1]
-    )
-    train_lfr_df = X_train.copy(); train_lfr_df[config.target] = y_train
-    ds_lfr_train = DataFrame(train_lfr_df); ds_lfr_train.targets, ds_lfr_train.sensitive = config.target, config.sensitive
-    ds_lfr_latent = lfr_proc.fit_transform(ds_lfr_train, epochs=60, learning_rate=0.001)
-    
-    test_lfr_df = X_test.copy()
-    test_lfr_df[config.target] = y_test
-    ds_lfr_test = DataFrame(test_lfr_df)
-    ds_lfr_test.targets, ds_lfr_test.sensitive = config.target, config.sensitive
-    X_test_lfr_df = lfr_proc.transform(ds_lfr_test)
-    X_test_lfr = pd.DataFrame(X_test_lfr_df.values, columns=X_test_lfr_df.columns)
-
-    lfr_pred = model_test.predict(X_test_lfr)
-    lfr_spd, lfr_di = evaluate_fairness(
-        X_test,
-        lfr_pred,
-        config.target,
-        config.sensitive,
-        config.positive_target,
-        config.favored_class,
-    )
-    report.save_report_dataframe(
-        pd.DataFrame(
-            [{"algorithm": model.filepath.split(".")[0], "spd": lfr_spd, "di": lfr_di}]
-        )
-    )
-    return report
-
-
+    return ModelTabular(model.__dict__).save_model(fauci_clf)
 
 
 #############################################3 helper functions 
