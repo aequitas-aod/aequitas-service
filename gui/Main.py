@@ -15,11 +15,11 @@ from utils import (
     session_state_params,
     load_method_content,
     import_from_path,
-    get_function_source
+    get_function_source,
+    run_operation,
 )
 from streamlit_ace import st_ace
 from streamlit_option_menu import option_menu
-from temlops.src.artifact_types import Data, Configuration, Report, Model
 
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
@@ -401,6 +401,7 @@ def populate_frames(
                             data_artifacts,
                             model_artifacts,
                             configuration_artifacts,
+                            report_artifacts,
                             current_product,
                             current_framework,
                             step_operations_module,
@@ -497,69 +498,6 @@ def populate_artifacts(artifacts):
                 """,
                 unsafe_allow_html=True,
             )
-
-
-def _resolve_vars(specs_list, data_artifacts, config_artifacts, model_artifacts):
-    vars = {}
-    for item in specs_list:
-        artifact_name = list(item.values())[0]
-        key = list(item.keys())[0]
-        match = next((a for a in data_artifacts if a["name"] == artifact_name), None)
-        if match:
-            vars[key] = Data(**{k: v for k, v in match.items() if k != "name"})
-        match = next((a for a in config_artifacts if a["name"] == artifact_name), None)
-        if match:
-            vars[key] = Configuration(**{k: v for k, v in match.items() if k != "name"})
-        match = next((a for a in model_artifacts if a["name"] == artifact_name), None)
-        if match:
-            vars[key] = Model(**{k: v for k, v in match.items() if k != "name"})
-    return vars
-
-
-def run_operation(
-    operation,
-    data_artifacts,
-    model_artifacts,
-    config_artifacts,
-    current_product,
-    current_framework="local",
-    step_operations_module="data_preparation.py",
-):
-    product_config_file = os.path.join(
-        USE_CASES_FOLDER, current_product, "metadata", f"aipc_{current_framework}.yaml"
-    )
-    product_operations_file = os.path.join(
-        USE_CASES_FOLDER,
-        current_product,
-        "src",
-        f"{current_framework}_platform",
-        step_operations_module,
-    )
-    with open(product_config_file, "r") as yaml_file:
-        aipc_configs = yaml.safe_load(yaml_file)
-        product_name = aipc_configs["ai_product_name"]
-    curr_module = import_from_path("curr_module", product_operations_file)
-
-    specs = operation["implementation"]["spec"]
-    method_name = specs["method_name"]
-
-    input_vars = _resolve_vars(
-        specs["inputs"], data_artifacts, config_artifacts, model_artifacts
-    )
-    input_vars.update(
-        _resolve_vars(
-            specs["outputs"], data_artifacts, config_artifacts, model_artifacts
-        )
-    )
-    print(input_vars)
-
-    func = getattr(curr_module, method_name)
-    if current_framework == "local":
-        func(**input_vars)
-    else:
-        func(product_name, **input_vars)
-    # method_name = globals()[method_name]
-    # result = method_name(**input_vars)
 
 
 def main():

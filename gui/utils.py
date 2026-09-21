@@ -10,6 +10,7 @@ from rdflib import Graph
 import importlib.util
 import importlib
 import inspect
+from temlops.src.artifact_types import Data, Configuration, Model, Report
 
 load_dotenv(find_dotenv())
 
@@ -26,7 +27,6 @@ USE_CASES_FOLDER = os.path.join(parent_folder, "framework/temlops/use_cases")
 FAIROPS_ONTOLOGY_PATH = os.environ.get(
     "FAIROPS_ONTOLOGY_PATH",
 )
-print(FAIROPS_ONTOLOGY_PATH)
 # indiv.ttl holds the FairnessNotion/FairnessMetric individuals (under the
 # indiv: namespace) and always ships alongside fairops.ttl in the same docs
 # folder, so it's derived rather than configured separately.
@@ -89,6 +89,27 @@ PREFIX core: <https://purl.org/fairops/core#>
 SELECT DISTINCT ?notion
 WHERE {{
     <{concern_iri}> core:isAddressedWith ?notion .
+}}
+"""
+
+# Independence, Separation and Sufficiency are the three mutually exclusive
+# group-fairness criteria from the fairness impossibility theorem (Barocas,
+# Hardt & Narayanan) -- a group fairness notion individual is typed with at
+# most one of these core:*FairnessNotion classes in the ontology.
+FAIRNESS_NOTION_CATEGORIES = ("Independence", "Separation", "Sufficiency")
+
+FAIRNESS_NOTION_CATEGORY_QUERY = """
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX core: <https://purl.org/fairops/core#>
+
+SELECT DISTINCT ?category
+WHERE {{
+    <{notion_iri}> rdf:type ?category .
+    VALUES ?category {{
+        core:IndependenceFairnessNotion
+        core:SeparationFairnessNotion
+        core:SufficiencyFairnessNotion
+    }}
 }}
 """
 
@@ -300,6 +321,26 @@ WHERE {
 ]
 
 
+# Legal requirement individuals are named after the EU AI Act article they
+# represent (indiv:Art.10, indiv:Art.10.3, ...) -- see fairops.ttl's
+# LegalRequirement definition ("A law or regulation article that
+# constrains..."). This pulls out the leading article number (e.g. "10"
+# from both "Art.10" and "Art.10.3") so Q1's results can be matched against
+# the plain-integer `article` numbers on each operation in
+# pipeline_definitions.yaml, which populate_stages() renders as "Art."
+# badges on the operation category buttons.
+def _article_numbers_from_legal_requirements(results):
+    numbers = set()
+    for row in results:
+        iri = row.get("legalRequirement")
+        if not iri:
+            continue
+        local_name = str(iri).split("#")[-1]
+        if local_name.startswith("Art."):
+            numbers.add(local_name[len("Art.") :].split(".")[0])
+    return numbers
+
+
 def render_competency_questions():
     """One row per fairops competency question: the question text plus a
     button that runs its SPARQL query against the ontology graph and shows
@@ -337,7 +378,14 @@ def render_competency_questions():
             }
             query = cq["query"].format(**format_kwargs) if params else cq["query"]
             try:
-                st.session_state[results_key] = run_sparql_query(query)
+                results = run_sparql_query(query)
+                st.session_state[results_key] = results
+                if cq["id"] == "Q1":
+                    # Drives the "Art." badge highlighting on the operation
+                    # category buttons in populate_stages().
+                    st.session_state["highlighted_legal_articles"] = (
+                        _article_numbers_from_legal_requirements(results)
+                    )
             except Exception as exc:
                 st.session_state[results_key] = exc
 
@@ -411,6 +459,20 @@ def get_fairness_notions(concern_iri):
     return sorted(notions, key=lambda n: n["label"])
 
 
+def get_fairness_notion_category(notion_iri):
+    """Which of FAIRNESS_NOTION_CATEGORIES `notion_iri` belongs to, per its
+    rdf:type in the ontology. Returns None for notions outside the trilemma
+    (e.g. individual/causal/procedural fairness notions)."""
+    graph = _load_ontology_graph()
+    query = FAIRNESS_NOTION_CATEGORY_QUERY.format(notion_iri=notion_iri)
+    for row in graph.query(query):
+        local_name = str(row.category).split("#")[-1]
+        for category in FAIRNESS_NOTION_CATEGORIES:
+            if local_name == f"{category}FairnessNotion":
+                return category
+    return None
+
+
 def get_fairness_metrics(notion_iri):
     graph = _load_ontology_graph()
     query = FAIRNESS_METRIC_QUERY.format(notion_iri=notion_iri)
@@ -425,7 +487,7 @@ def get_mitigation_techniques_for_concern(concern_iri):
     iris = {str(row.mitTech) for row in graph.query(query)}
     techniques = [{"iri": iri, "label": label_for_iri(iri)} for iri in iris]
     if len(techniques) == 0:
-        techniques = [{"iri": "N/A", "label": "Mitigation sample"}]
+        techniques = [{"iri": "N/A", "label": "Mitigation disparate impact remover"}]
     return sorted(techniques, key=lambda t: t["label"])
 
 
@@ -541,7 +603,7 @@ def render_cascade_question(text, options, key, level=0):
 
 # Stage -> level/group/colors, matching the pre/in/post-processing
 # mitigation groups (see MITIGATION_GROUP_STYLES in
-# pages/2_new_aiproduct.py): yellow for data_preparation (Pre-processing,
+# pages/2_New_AI_Product.py): yellow for data_preparation (Pre-processing,
 # level 1), green for modelling (In-processing, level 2), blue for
 # operationalization (Post-processing, level 3). `level` orders the stages
 # so populate_stages() can tell which ones sit "before" a recommended
@@ -601,6 +663,79 @@ def load_method_content(
     source_text = inspect.getsource(func)
     return source_text
 
+
+def _resolve_vars(specs_list, data_artifacts, config_artifacts, model_artifacts, report_artifacts=None):
+    """Resolves an operation spec's inputs/outputs list (e.g.
+    [{"data_test": "data_testing"}]) into {param_name: artifact_instance},
+    looking up each artifact's config by name in the aipc_*.yaml `artifacts`
+    section and wrapping it in the matching Data/Configuration/Model type."""
+    vars = {}
+    for item in specs_list:
+        artifact_name = list(item.values())[0]
+        key = list(item.keys())[0]
+        match = next((a for a in data_artifacts if a["name"] == artifact_name), None)
+        if match:
+            vars[key] = Data(**{k: v for k, v in match.items() if k != "name"})
+        match = next((a for a in config_artifacts if a["name"] == artifact_name), None)
+        if match:
+            vars[key] = Configuration(**{k: v for k, v in match.items() if k != "name"})
+        match = next((a for a in model_artifacts if a["name"] == artifact_name), None)
+        if match:
+            vars[key] = Model(**{k: v for k, v in match.items() if k != "name"})
+        match = next((a for a in report_artifacts if a["name"] == artifact_name), None)
+        if match:
+            vars[key] = Report(**{k: v for k, v in match.items() if k != "name"})
+    return vars
+
+
+def run_operation(
+    operation,
+    data_artifacts,
+    model_artifacts,
+    config_artifacts,
+    report_artifacts,
+    current_product,
+    current_framework="local",
+    step_operations_module="data_preparation.py",
+):
+    """Runs a wired aipc_*.yaml operation entry: resolves its inputs/outputs
+    against the product's artifact definitions, imports its module and
+    calls its `method_name` with the resolved artifacts as kwargs (plus the
+    product name as first positional arg for non-local frameworks)."""
+    product_config_file = os.path.join(
+        USE_CASES_FOLDER, current_product, "metadata", f"aipc_{current_framework}.yaml"
+    )
+    product_operations_file = os.path.join(
+        USE_CASES_FOLDER,
+        current_product,
+        "src",
+        f"{current_framework}_platform",
+        step_operations_module,
+    )
+    with open(product_config_file, "r") as yaml_file:
+        aipc_configs = yaml.safe_load(yaml_file)
+        product_name = aipc_configs["ai_product_name"]
+    curr_module = import_from_path("curr_module", product_operations_file)
+
+    specs = operation["implementation"]["spec"]
+    method_name = specs["method_name"]
+
+    input_vars = _resolve_vars(
+        specs["inputs"], data_artifacts, config_artifacts, model_artifacts, report_artifacts
+    )
+    input_vars.update(
+        _resolve_vars(
+            specs["outputs"], data_artifacts, config_artifacts, model_artifacts, report_artifacts
+        )
+    )
+
+    func = getattr(curr_module, method_name)
+    if current_framework == "local":
+        func(**input_vars)
+    else:
+        func(product_name, **input_vars)
+
+
 @st.cache_data(show_spinner=False)
 def load_aipc_config(current_product, current_framework):
     """Full parsed aipc_<framework>.yaml for a use case (operations +
@@ -634,6 +769,23 @@ def populate_stages(
     current_product="recruitment",
     current_framework="local",
 ):
+    # Set by render_competency_questions() when Q1 ("Which legal
+    # requirements are applicable...") is run -- highlights the "Art."
+    # badges below matching one of the returned legal requirements.
+    highlighted_articles = st.session_state.get("highlighted_legal_articles") or set()
+
+    def article_badge(art):
+        highlighted = str(art) in highlighted_articles
+        bg = "#f59e0b" if highlighted else "#6b7280"
+        ring = "box-shadow:0 0 0 2px #fde68a;" if highlighted else ""
+        title = ' title="Applicable per Q1"' if highlighted else ""
+        return (
+            f'<span{title} style="width:20px; height:20px; border-radius:50%; '
+            f"background-color:{bg}; color:#ffffff; display:flex; "
+            "align-items:center; justify-content:center; font-size:0.65em; "
+            f'font-weight:600; flex-shrink:0; {ring}">{art}</span>'
+        )
+
     recommended_level = next(
         (
             meta["level"]
@@ -736,13 +888,7 @@ def populate_stages(
                             # breaking it out of the flex row (and out of
                             # vertical alignment with the others).
                             circles = "".join(
-                                f'<span style="width:20px; height:20px; '
-                                "border-radius:50%; background-color:#6b7280; "
-                                "color:#ffffff; display:flex; align-items:center; "
-                                "justify-content:center; font-size:0.65em; "
-                                'font-weight:600; flex-shrink:0;">'
-                                f"{art}</span>"
-                                for art in articles
+                                article_badge(art) for art in articles
                             )
                             badge_container = st.container(key=badge_key)
                             with badge_container:
@@ -765,7 +911,7 @@ def populate_stages(
                     if clicked:
                         # Loads the operation category's wired
                         # implementation(s); show_operation_implementation()
-                        # (pages/2_new_aiproduct.py) renders them from here.
+                        # (pages/2_New_AI_Product.py) renders them from here.
                         st.session_state["selected_operation_implementation"] = {
                             "op_type": op_type,
                             "current_product": current_product,
