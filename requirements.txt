@@ -6,3 +6,32 @@ streamlit-monaco
 streamlit_elements
 pyyaml
 rdflib
+
+python-dotenv
+evidently>=0.7
+
+### Data handling (gui/*.py)
+pandas
+numpy
+
+### LLM / agent orchestration (pages/2_New_AI_Product.py, pages/3_Compliance_Assessment.py)
+langchain-mcp-adapters
+langchain-openai
+langgraph
+
+### ML / fairness toolkits used by the recruitment use case's operation modules
+### (framework/temlops/use_cases/recruitment/src/local_platform/*.py), imported
+### dynamically whenever a "Code" tab or "Run operation" button is used in the GUI
+scikit-learn
+matplotlib
+seaborn
+mlflow
+openml
+requests
+holisticai
+mlserver
+aequitas-fairlib[torch]
+torch
+
+### Local temlops framework package (editable install of framework/, this repo)
+-e ./framework
