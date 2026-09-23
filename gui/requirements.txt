@@ -34,4 +34,5 @@ aequitas-fairlib[torch]
 torch
 
 ### Local temlops framework package (editable install of framework/, this repo)
--e ../framework
+#-e ../framework
+-e git+https://github.com/aequitas-aod/aequitas-service.git@main#subdirectory=framework
