@@ -22,6 +22,9 @@ from temlops.use_cases.recruitment.src.local_platform.platform_artifacts import 
     DocumentationTabular,
 )
 
+import torch
+import torch.nn as nn
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -91,6 +94,7 @@ def train_model_disparate_impact_remover(
 def train_model_learning_fair_representations(
     data: Data, config: Configuration, model: Model
 ) -> Model:
+    
     dataset = DataTabular(data.__dict__).load_dataset()
     X_train = dataset.drop(columns=[config.target_column]).copy(deep=True)
     y_train = dataset[config.target_column].copy(deep=True)
@@ -117,11 +121,51 @@ def train_model_learning_fair_representations(
 
 
 #################################### in-processing techniques
-def train_model_fauci():
-    pass
+class FauciMLP(nn.Module):
+    def __init__(self, input_dim, hidden_dim, hidden_layers, output_dim):
+        super().__init__()
+        layers = [nn.Linear(input_dim, hidden_dim), nn.ReLU()]
+        for _ in range(hidden_layers - 1):
+            layers += [nn.Linear(hidden_dim, hidden_dim), nn.ReLU()]
+        layers += [nn.Linear(hidden_dim, output_dim), nn.Sigmoid()]
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+
+def train_model_fauci(data: Data, config: Configuration, model: Model) -> Model:
+    dataset = DataTabular(data.__dict__).load_dataset()
+    X_train = dataset.drop(columns=[config.target_column]).copy(deep=True)
+    y_train = dataset[config.target_column].copy(deep=True)
+
+    train_fauci = X_train.copy()
+    train_fauci[config.target_column] = y_train
+    ds_fauci = DataFrame(train_fauci)
+    for col in ds_fauci.columns:
+        if ds_fauci[col].dtype == "object" or ds_fauci[col].dtype.name == "category":
+            ds_fauci[col], _ = pd.factorize(ds_fauci[col])
+    ds_fauci.targets, ds_fauci.sensitive = config.target_column, config.sensitive
+
+    torch.manual_seed(config.random_state)
+    base_model = FauciMLP(
+        input_dim=X_train.shape[1],
+        hidden_dim=config.hidden_dim,
+        hidden_layers=config.hidden_layers,
+        output_dim=1,
+    )
+    fauci_clf = Fauci(
+        torchModel=base_model,
+        fairness_regularization=config.fairness_regularization,
+        regularization_weight=config.regularization_weight,
+    )
+    fauci_clf.fit(ds_fauci, epochs=config.epochs, batch_size=config.batch_size)
+
+    return ModelTabular(model.__dict__).save_model(fauci_clf)
 
 
 def train_model_adversarial_debiasing():
+    
     pass
 
 

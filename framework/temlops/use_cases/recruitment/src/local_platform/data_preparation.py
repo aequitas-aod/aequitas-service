@@ -19,6 +19,8 @@ from sklearn.metrics import accuracy_score
 from fairlib import DataFrame
 from fairlib.preprocessing import Reweighing, DisparateImpactRemover, LFR
 
+
+
 """ 
 Data preparation stage containing 4 operations categories:
 Data Profiling
@@ -182,8 +184,24 @@ def data_validation_check_quantity(data: Data, config: Configuration, output_sta
 def data_validation_demographics_qty(data: Data, config: Configuration, output_status: Status) -> Status:
     pass
 
-def data_drift_detection(data: Data, config: Report):
+def data_drift_detection(reference_data: Data, current_data: Data, config: Report):
     pass
+#    """
+#    Function to detect data drift
+#    """
+#from evidently.report import Report
+#from evidently.metric_preset import DataDriftPreset
+#    # Create a report with the DataDriftPreset
+#    report = Report(metrics=[DataDriftPreset()])
+
+    # Run the report with the provided data
+#   report.run(
+#        reference_data=reference_data,
+#        current_data=current_data,
+#    )
+
+    # Return the results
+#    return report.show()
 
 def data_drift_status(data: Data, output_status: Status):
     pass

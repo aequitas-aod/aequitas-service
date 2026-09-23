@@ -26,22 +26,22 @@ operations:
         outputs:
           - data_processed: data_processed 
 
-  - type: data_profiling  
-    stage: data_preparation
-    id: data_profiling
-    name: Generate EDA profiling report
-    requirement_dimension: baseline
-    implementation: 
-      framework: local
-      spec:
-        path: data_preparation.py
-        method_name: data_drift_detection
-        requirements: requirements.txt
-        inputs:
-          - data:  hiring_data_original
-          - config: constraints_file 
-        outputs:
-          - report: data_profiling_report
+#  - type: data_profiling  
+#    stage: data_preparation
+#    id: data_profiling
+#    name: Generate EDA profiling report
+#    requirement_dimension: baseline
+#    implementation: 
+#      framework: local
+#      spec:
+#        path: data_preparation.py
+#        method_name: data_drift_detection
+#        requirements: requirements.txt
+#        inputs:
+#          - data:  hiring_data_original
+#          - config: constraints_file 
+#        outputs:
+#          - report: data_profiling_report
           
   - type: data_preprocessing  
     stage: data_preparation
@@ -77,7 +77,7 @@ operations:
           - data_train: data_training
           - config: profiling_actions  
         outputs:
-          - data_profiling_custom_report: data_profiling_custom_report 
+          - report: data_profiling_custom_report 
 
 
 ######################################################### Modelling Stage
@@ -150,7 +150,26 @@ operations:
           - config: model_train_fair
         outputs:
           - model: model_fairness_learning_fair_representations
-################### Model evaluation 
+
+################### Model training (in-processing)
+  - type: model_training
+    stage: modelling
+    id: train_model_fauci
+    name: Model Training in-processing with FaUCI for Fairness
+    requirement_dimension: fairness
+    implementation:
+      framework: local
+      spec:
+        path: modelling.py
+        method_name: train_model_fauci
+        requirements: requirements.txt
+        inputs:
+          - data: data_training
+          - config: model_train_fauci
+        outputs:
+          - model: model_fairness_fauci
+
+################### Model evaluation
 
   - type: model_evaluation
     stage: modelling
@@ -334,6 +353,21 @@ operations:
         outputs:
           - configuration: model_inferenceservice_endpoint
 
+  - type: model_monitoring
+    stage: operationalization
+    id: model_monitoring_nannyml
+    name: Model Monitoring using NannyML
+    requirement_dimension: baseline
+    implementation: 
+      framework: local
+      spec:
+        path: operationalization.py
+        method_name: model_monitoring_nannyml
+        requirements: requirements.txt
+        inputs:
+          - model: model_fairness_unaware
+        outputs:
+          - configuration: model_inferenceservice_endpoint
 
   - type: post_inference_transformations
     stage: operationalization
@@ -385,6 +419,9 @@ artifacts:
     - name: model_fairness_learning_fair_representations
       config:
         filepath: model_fairness_learning_fair_representations.pickle
+    - name: model_fairness_fauci
+      config:
+        filepath: model_fairness_fauci.pickle
   configuration:
     - name: splitting_config
       config:
@@ -399,6 +436,17 @@ artifacts:
       config:
         target_column: Status
         sensitive: sex
+    - name: model_train_fauci
+      config:
+        target_column: Status
+        sensitive: sex
+        random_state: 42
+        hidden_dim: 8
+        hidden_layers: 1
+        epochs: 100
+        batch_size: 32
+        regularization_weight: 0.5
+        fairness_regularization: spd
     - name: model_evaluation_fairness_metrics     # values considered fair for each metric
       config: 
         target: Status
@@ -430,10 +478,10 @@ artifacts:
         filepath: data_drift.html   
     - name: data_profiling_custom_report
       config:
-        filepath: data_profiling_custom_report.html 
+        filepath: recruitment_correlation.png 
     - name: model_performance_metrics_report
       config:
-        filepath: model_performance_metrics_report.csv
+        filepath: preprocessing_di_comparison.png
     - name: model_fairness_metrics_report
       config:
         filepath: model_fairness_metrics_report.csv
