@@ -20,6 +20,10 @@ From the repository root:
 1. Install the GUI dependencies:
    ```bash
    pip install -r requirements.txt
+   OR
+   uv venv
+   source .venv/bin/activate 
+   uv pip install -r requirements.txt
    ```
 
 2. Install the `temlops` library from the `framework` folder:
@@ -39,8 +43,27 @@ From the repository root:
 
 4. Launch the Streamlit app:
    ```bash
-   streamlit run gui/app.py
+   streamlit run gui/Main.py
+   OR
+   uv run streamlit run gui/Main.py
    ```
+
+## Running with Docker
+
+A `Dockerfile` for the GUI lives at `gui/Dockerfile`. Its build context must be the **repository root** (not `gui/`), since the app also reads from `framework/` and `tools_catalog/` at runtime.
+
+1. Build the image from the repository root:
+   ```bash
+   docker build -f gui/Dockerfile -t aequitas-gui .
+   ```
+
+2. Run it:
+   ```bash
+   docker run --rm -p 8501:8501 --env-file .env aequitas-gui
+   ```
+   `--env-file .env` passes through any keys the AI-generation flow on the New AI Product / Compliance Assessment pages needs (e.g. `OPENAI_API_KEY`); it's optional otherwise. The fairops ontology is bundled at `gui/fairops/` and used automatically, so no `FAIROPS_ONTOLOGY_PATH` setup is needed for the container.
+
+3. Open [http://localhost:8501](http://localhost:8501).
 
 ## GUI Overview
 
