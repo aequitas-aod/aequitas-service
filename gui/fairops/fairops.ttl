@@ -1,0 +1,1958 @@
+@prefix : <https://purl.org/fairops/core#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix fmo: <https://purl.org/twc/fmo#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix core: <https://purl.org/fairops/core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix swrl: <http://www.w3.org/2003/11/swrl#> .
+@prefix swrla: <http://swrl.stanford.edu/ontologies/3.3/swrla.owl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix docbias: <https://nobias-project.eu/nobias/> .
+@prefix resource: <http://semanticscience.org/resource/> .
+@base <https://purl.org/fairops/core> .
+
+<https://purl.org/fairops/core> rdf:type owl:Ontology ;
+                                 dc:creator "Daniela Loreti" ,
+                                            "Roberta Calegari" ;
+                                 dc:description "FairOps is an ontology for operational fairness governance in AI systems" ;
+                                 dc:title "FairOps" ;
+                                 dcterms:license "GNU General Public License v3.0" ,
+                                                 "http://creativecommons.org/licenses/by/4.0/" ;
+                                 owl:versionInfo 4.2 .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://purl.org/dc/elements/1.1/creator
+dc:creator rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/description
+dc:description rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/source
+dc:source rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/title
+dc:title rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/terms/license
+dcterms:license rdf:type owl:AnnotationProperty .
+
+
+###  http://semanticscience.org/resource/hasSynonym
+resource:hasSynonym rdf:type owl:AnnotationProperty .
+
+
+###  http://swrl.stanford.edu/ontologies/3.3/swrla.owl#isRuleEnabled
+swrla:isRuleEnabled rdf:type owl:AnnotationProperty .
+
+
+###  http://www.w3.org/2004/02/skos/core#definition
+skos:definition rdf:type owl:AnnotationProperty .
+
+
+###  https://purl.org/fairops/core#hasAntonym
+core:hasAntonym rdf:type owl:AnnotationProperty ;
+                rdfs:comment "Relates a concept to its antonym, given as a string or URI."@en ;
+                rdfs:label "has antonym"@en .
+
+
+###  https://purl.org/fairops/core#isBasedOnSocialPrinciple
+core:isBasedOnSocialPrinciple rdf:type owl:AnnotationProperty .
+
+
+###  https://purl.org/twc/fmo#probabilistic_definition
+fmo:probabilistic_definition rdf:type owl:AnnotationProperty .
+
+
+###  https://purl.org/twc/fmo#tag
+fmo:tag rdf:type owl:AnnotationProperty .
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  http://semanticscience.org/resource/SIO_000068
+resource:SIO_000068 rdf:type owl:ObjectProperty ;
+                    rdfs:domain core:LegalRequirement ;
+                    rdfs:range core:Legislation ;
+                    rdfs:label "is part of"@en .
+
+
+###  https://purl.org/fairops/core#arisesIn
+core:arisesIn rdf:type owl:ObjectProperty ;
+              rdfs:domain core:FairnessConcern ;
+              rdfs:range core:AITypeOfUse ;
+              rdfs:label "arises in" .
+
+
+###  https://purl.org/fairops/core#conflictsWith
+core:conflictsWith rdf:type owl:ObjectProperty ,
+                            owl:SymmetricProperty .
+
+
+###  https://purl.org/fairops/core#enforces
+core:enforces rdf:type owl:ObjectProperty ;
+              owl:inverseOf core:isEnforcedBy ;
+              rdfs:domain core:MitigationTechnique ;
+              rdfs:range fmo:fairness_metric ;
+              rdfs:label "enforces"@en .
+
+
+###  https://purl.org/fairops/core#exposesTo
+core:exposesTo rdf:type owl:ObjectProperty ;
+               rdfs:domain docbias:Bias ;
+               rdfs:range core:FairnessConcern ;
+               rdfs:label "exposes to"@en .
+
+
+###  https://purl.org/fairops/core#extends
+core:extends rdf:type owl:ObjectProperty ;
+             rdfs:domain core:ScientificArtifact ;
+             rdfs:range core:ScientificArtifact ;
+             rdfs:label "extends" ;
+             skos:definition "A certain Scientific Artifact may extend another. E.g., a certain Fairness Notion can extend another one" .
+
+
+###  https://purl.org/fairops/core#follows
+core:follows rdf:type owl:ObjectProperty ;
+             owl:inverseOf core:isFollowedBy ;
+             rdfs:domain core:AILifecycleStep ;
+             rdfs:range core:AILifecycleStep ;
+             rdfs:label "follows" .
+
+
+###  https://purl.org/fairops/core#givesRiseTo
+core:givesRiseTo rdf:type owl:ObjectProperty ;
+                 rdfs:domain core:LegalRequirement ;
+                 rdfs:range core:FairnessConcern ;
+                 rdfs:label "gives rise to" .
+
+
+###  https://purl.org/fairops/core#guides
+core:guides rdf:type owl:ObjectProperty ;
+            owl:inverseOf core:isGuidedBy ;
+            rdfs:domain core:SocialPrinciple ;
+            rdfs:range fmo:fairness_notion ;
+            rdfs:comment "Links a fairness notion to its underpinning social principle such as equity or equality."@en ;
+            rdfs:label "guides"@en .
+
+
+###  https://purl.org/fairops/core#hasBeenAppliedTo
+core:hasBeenAppliedTo rdf:type owl:ObjectProperty ;
+                      rdfs:domain core:ScientificArtifact ;
+                      rdfs:range core:ApplicationDomain ;
+                      rdfs:label "has been applied to"@en ;
+                      skos:definition "A certain fairness notion has been applied to certain application domains."@en .
+
+
+###  https://purl.org/fairops/core#hasBeenTestedOn
+core:hasBeenTestedOn rdf:type owl:ObjectProperty ;
+                     rdfs:domain core:ScientificArtifact ;
+                     rdfs:range <https://www.w3.org/TR/vocab-dcat-3/Dataset> ;
+                     rdfs:label "has been tested on"@en .
+
+
+###  https://purl.org/fairops/core#independenceSeparationConflictsWith
+core:independenceSeparationConflictsWith rdf:type owl:ObjectProperty ;
+                                         rdfs:subPropertyOf core:conflictsWith ;
+                                         rdf:type owl:SymmetricProperty ;
+                                         rdfs:comment "Assume Y is binary, A is not independent of Y, and R is not independent of Y. Then, independence and separation cannot both hold." .
+
+
+###  https://purl.org/fairops/core#independenceSufficiencyConflictsWith
+core:independenceSufficiencyConflictsWith rdf:type owl:ObjectProperty ;
+                                          rdfs:subPropertyOf core:conflictsWith ;
+                                          rdf:type owl:SymmetricProperty ;
+                                          rdfs:comment "Assume that sensitive attribute A and the target variable Y are not independent. Then sufficiency and independence cannot both hold." .
+
+
+###  https://purl.org/fairops/core#involves
+core:involves rdf:type owl:ObjectProperty ;
+              rdfs:domain core:FairnessConcern ;
+              rdfs:range docbias:Harm .
+
+
+###  https://purl.org/fairops/core#isAddressedWith
+core:isAddressedWith rdf:type owl:ObjectProperty ;
+                     rdfs:domain core:FairnessConcern ;
+                     rdfs:range fmo:fairness_notion ;
+                     rdfs:label "is addressed with"@en .
+
+
+###  https://purl.org/fairops/core#isAppliedAt
+core:isAppliedAt rdf:type owl:ObjectProperty ;
+                 rdfs:domain core:MitigationTechnique ;
+                 rdfs:range core:AILifecycleStep ;
+                 rdfs:label "is applied at" .
+
+
+###  https://purl.org/fairops/core#isEnforcedBy
+core:isEnforcedBy rdf:type owl:ObjectProperty ;
+                  rdfs:domain fmo:fairness_metric ;
+                  rdfs:range core:MitigationTechnique ;
+                  rdfs:label "is enforced by"@en .
+
+
+###  https://purl.org/fairops/core#isEquivalentTo
+core:isEquivalentTo rdf:type owl:ObjectProperty ,
+                             owl:SymmetricProperty ;
+                    rdfs:domain fmo:fairness_notion ;
+                    rdfs:range fmo:fairness_notion ;
+                    rdfs:label "is equivalent to"@en ;
+                    skos:definition "A certain fairness notion can be equal to some other fairness notions."@en .
+
+
+###  https://purl.org/fairops/core#isFollowedBy
+core:isFollowedBy rdf:type owl:ObjectProperty ;
+                  rdfs:domain core:AILifecycleStep ;
+                  rdfs:range core:AILifecycleStep ;
+                  rdfs:label "is followed by" .
+
+
+###  https://purl.org/fairops/core#isGuidedBy
+core:isGuidedBy rdf:type owl:ObjectProperty ;
+                rdfs:domain fmo:fairness_notion ;
+                rdfs:range core:SocialPrinciple ;
+                rdfs:comment "Links a fairness notion to its underpinning social principle such as equity or equality."@en ;
+                rdfs:label "is guided by"@en .
+
+
+###  https://purl.org/fairops/core#isMeasuredBy
+core:isMeasuredBy rdf:type owl:ObjectProperty ;
+                  owl:inverseOf core:measures ;
+                  rdfs:domain fmo:fairness_notion ;
+                  rdfs:range fmo:fairness_metric ;
+                  rdfs:label "is measured by"@en ;
+                  skos:definition "A fairness notion is measured by a fairness metric if comparisons made with the given metric are a valid way to determine fairness with this notion."@en .
+
+
+###  https://purl.org/fairops/core#isMitigatedBy
+core:isMitigatedBy rdf:type owl:ObjectProperty ;
+                   owl:inverseOf core:mitigates ;
+                   rdfs:domain docbias:Bias ;
+                   rdfs:range fmo:fairness_notion ;
+                   rdfs:label "is mitigated by"@en ;
+                   skos:definition "A certain bias in the use-case can be mitigated by enforcing specific fairness notions."@en .
+
+
+###  https://purl.org/fairops/core#isOperationalizedBy
+core:isOperationalizedBy rdf:type owl:ObjectProperty ;
+                         owl:inverseOf core:operationalize ;
+                         rdfs:domain core:LegalRequirement ;
+                         rdfs:range fmo:fairness_notion ;
+                         rdfs:label "is operationalized by" .
+
+
+###  https://purl.org/fairops/core#isProposedBy
+core:isProposedBy rdf:type owl:ObjectProperty ;
+                  rdfs:subPropertyOf core:isUsedBy ;
+                  rdfs:domain core:ScientificArtifact ;
+                  rdfs:range core:ScientificPaper ;
+                  rdfs:label "is proposed by"@en ;
+                  skos:definition "A certain fairness notion is proposed by a certain scientific paper."@en .
+
+
+###  https://purl.org/fairops/core#isQuantifiedBy
+core:isQuantifiedBy rdf:type owl:ObjectProperty ;
+                    rdfs:domain core:FairnessConcern ;
+                    rdfs:range fmo:fairness_metric ;
+                    rdfs:label "is quantified by"@en .
+
+
+###  https://purl.org/fairops/core#isRelevantDuring
+core:isRelevantDuring rdf:type owl:ObjectProperty ;
+                      rdfs:domain core:LegalRequirement ;
+                      rdfs:range core:AILifecycleStep ;
+                      rdfs:label "is relevant during" .
+
+
+###  https://purl.org/fairops/core#isSuitableFor
+core:isSuitableFor rdf:type owl:ObjectProperty ;
+                   rdfs:domain core:ScientificArtifact ;
+                   rdfs:range core:AITypeOfUse ;
+                   rdfs:label "is suitable for" .
+
+
+###  https://purl.org/fairops/core#isTriggeredBy
+core:isTriggeredBy rdf:type owl:ObjectProperty ;
+                   owl:inverseOf core:triggers ;
+                   rdfs:label "is triggered by" .
+
+
+###  https://purl.org/fairops/core#isUsedBy
+core:isUsedBy rdf:type owl:ObjectProperty ;
+              rdfs:domain core:ScientificArtifact ;
+              rdfs:range core:ScientificPaper ;
+              rdfs:label "is used by"@en ;
+              skos:definition "A certain fairness notion is used by some scientific papers."@en .
+
+
+###  https://purl.org/fairops/core#itsComplianceIsSupportedWith
+core:itsComplianceIsSupportedWith rdf:type owl:ObjectProperty ;
+                                  owl:inverseOf core:supportsComplianceWith ;
+                                  rdfs:domain core:LegalRequirement ;
+                                  rdfs:range core:MitigationTechnique ;
+                                  rdfs:label "its compliance is supported by" .
+
+
+###  https://purl.org/fairops/core#measures
+core:measures rdf:type owl:ObjectProperty ;
+              rdfs:domain fmo:fairness_metric ;
+              rdfs:range fmo:fairness_notion ;
+              rdfs:label "measures"@en ;
+              skos:definition "A fairness metric measures some fairness notion if comparisons made with the given metric are a valid way to determine fairness with this notion."@en .
+
+
+###  https://purl.org/fairops/core#mitigatedWith
+core:mitigatedWith rdf:type owl:ObjectProperty ;
+                   rdfs:domain core:FairnessConcern ;
+                   rdfs:range core:MitigationTechnique ;
+                   rdfs:label "mitigated with"@en .
+
+
+###  https://purl.org/fairops/core#mitigates
+core:mitigates rdf:type owl:ObjectProperty ;
+               rdfs:domain fmo:fairness_notion ;
+               rdfs:range docbias:Bias ;
+               rdfs:label "mitigates"@en ;
+               skos:definition "A fairness notion is required to mitigate a certain bias."@en .
+
+
+###  https://purl.org/fairops/core#operationalize
+core:operationalize rdf:type owl:ObjectProperty ;
+                    rdfs:domain fmo:fairness_notion ;
+                    rdfs:range core:LegalRequirement ;
+                    rdfs:label "operationalize" .
+
+
+###  https://purl.org/fairops/core#refersTo
+core:refersTo rdf:type owl:ObjectProperty ;
+              rdfs:domain core:ScientificArtifact ;
+              rdfs:range core:AITask ;
+              rdfs:label "refers to"@en ;
+              skos:definition "A certain fairness notion refers to (is suitable for) a certain set of AI tasks."@en .
+
+
+###  https://purl.org/fairops/core#relatesTo
+core:relatesTo rdf:type owl:ObjectProperty ;
+               rdfs:domain <https://www.w3.org/TR/vocab-dcat-3/Dataset> ;
+               rdfs:range core:ApplicationDomain ;
+               rdfs:label "relates to" .
+
+
+###  https://purl.org/fairops/core#requires
+core:requires rdf:type owl:ObjectProperty ;
+              rdfs:domain core:FairnessConcern ;
+              rdfs:range core:EvidenceArtifact .
+
+
+###  https://purl.org/fairops/core#separationSufficiencyConflictsWith
+core:separationSufficiencyConflictsWith rdf:type owl:ObjectProperty ;
+                                        rdfs:subPropertyOf core:conflictsWith ;
+                                        rdf:type owl:SymmetricProperty ;
+                                        rdfs:comment "Assume that all events in the joint distribution of (A, R, Y) have positive probability, and assume A is not independent of Y. Then, separation and sufficiency cannot both hold. For binary classifier, this means: Assume Y is not independent of A and assume \\hat{Y} is a binary classifier with a nonzero false positive rate. Then, separation and sufficiency cannot both hold." .
+
+
+###  https://purl.org/fairops/core#supportsComplianceWith
+core:supportsComplianceWith rdf:type owl:ObjectProperty ;
+                            rdfs:domain core:MitigationTechnique ;
+                            rdfs:range core:LegalRequirement ;
+                            rdfs:label "supports compliance with" .
+
+
+###  https://purl.org/fairops/core#testsOn
+core:testsOn rdf:type owl:ObjectProperty ;
+             rdfs:domain core:ScientificPaper ;
+             rdfs:range <https://www.w3.org/TR/vocab-dcat-3/Dataset> ;
+             rdfs:label "tests on"@en .
+
+
+###  https://purl.org/fairops/core#triggers
+core:triggers rdf:type owl:ObjectProperty ;
+              rdfs:domain core:ApplicationDomain ;
+              rdfs:range core:LegalRequirement .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+###  https://purl.org/fairops/core#scientificArtifactDescription
+core:scientificArtifactDescription rdf:type owl:DatatypeProperty ;
+                                   rdfs:domain core:ScientificArtifact ;
+                                   rdfs:range xsd:string ;
+                                   rdfs:label "scientific artifact description"@en ;
+                                   skos:definition "A latex description of a scientific artifact."@en .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://nobias-project.eu/nobias/Bias
+docbias:Bias rdf:type owl:Class .
+
+
+###  https://nobias-project.eu/nobias/Harm
+docbias:Harm rdf:type owl:Class .
+
+
+###  https://purl.org/fairops/core#AILifecycleStep
+core:AILifecycleStep rdf:type owl:Class ;
+                     rdfs:label "AI Lifecycle Step" .
+
+
+###  https://purl.org/fairops/core#AITask
+core:AITask rdf:type owl:Class ;
+            rdfs:label "AI Task"@en ;
+            skos:definition "The functional task that the AI system is able to perform. Previously was MLTask, AITask and AICapability."@en .
+
+
+###  https://purl.org/fairops/core#AITypeOfUse
+core:AITypeOfUse rdf:type owl:Class ;
+                 owl:equivalentClass [ rdf:type owl:Class ;
+                                       owl:oneOf ( core:Conversation
+                                                   core:Prediction
+                                                   core:Recommendation
+                                                 )
+                                     ] ;
+                 rdfs:comment "Describes the type of use of (or the type of interaction with) the AI system. It impacts obligations. Previously called AIScenario" ;
+                 rdfs:label "AI Type Of Use" .
+
+
+###  https://purl.org/fairops/core#Adapters
+core:Adapters rdf:type owl:Class ;
+              rdfs:subClassOf core:PartialFineTuning ;
+              rdfs:label "Adapters" .
+
+
+###  https://purl.org/fairops/core#AdversarialLearning
+core:AdversarialLearning rdf:type owl:Class ;
+                         rdfs:subClassOf core:FullRetraining ;
+                         rdfs:label "Adversarial Learning" .
+
+
+###  https://purl.org/fairops/core#AmortizedGranularityMetric
+core:AmortizedGranularityMetric rdf:type owl:Class ;
+                                rdfs:subClassOf core:GranularityMetric ;
+                                rdfs:label "Amortized Granularity Metric"@en .
+
+
+###  https://purl.org/fairops/core#ApplicationDomain
+core:ApplicationDomain rdf:type owl:Class ;
+                       rdfs:label "Application Domain"@en ;
+                       skos:definition "The specific real-world area or context in which the system is designed to operate. Previously was UseArea. According to AI Watch taxonomy can also me called \"Economic Sector or Use Area\""@en .
+
+
+###  https://purl.org/fairops/core#AuditSets
+core:AuditSets rdf:type owl:Class ;
+               rdfs:subClassOf core:DataGeneration ;
+               rdfs:label "Audit Sets" .
+
+
+###  https://purl.org/fairops/core#BanditsBasedLearning
+core:BanditsBasedLearning rdf:type owl:Class ;
+                          rdfs:subClassOf core:FullRetraining ;
+                          rdfs:label "Bandits-based Learning" .
+
+
+###  https://purl.org/fairops/core#BlackBoxDecisionOnly
+core:BlackBoxDecisionOnly rdf:type owl:Class ;
+                          rdfs:subClassOf core:ModelAccessResourcesMitigation ,
+                                          [ rdf:type owl:Restriction ;
+                                            owl:onProperty core:isAppliedAt ;
+                                            owl:allValuesFrom core:Post-processing
+                                          ] ;
+                          rdfs:label "Decision Layer Control - Black-box Model (I)"@en .
+
+
+###  https://purl.org/fairops/core#Blinding
+core:Blinding rdf:type owl:Class ;
+              rdfs:subClassOf core:FeatureLevelColumnIntervention ;
+              rdfs:label "Blinding and Proxy Removal" .
+
+
+###  https://purl.org/fairops/core#CalibrationBasedFairnessMetric
+core:CalibrationBasedFairnessMetric rdf:type owl:Class ;
+                                    rdfs:subClassOf fmo:fairness_metric ;
+                                    rdfs:label "Calibration-based Fairness Metric" ;
+                                    skos:definition "A measurement of any fairness notion, partially connected to the confusion matrix principles, these metrics are usually referred with the term  calibration-based, with the very aim of distinguishing their prevalent attention to the predictive values." .
+
+
+###  https://purl.org/fairops/core#CalibrationBasedMitigation
+core:CalibrationBasedMitigation rdf:type owl:Class ;
+                                rdfs:subClassOf core:GreyBoxScores ;
+                                rdfs:label "Calibration-based Mitigation" .
+
+
+###  https://purl.org/fairops/core#CausalFairnessNotion
+core:CausalFairnessNotion rdf:type owl:Class ;
+                          rdfs:subClassOf core:OutcomeFairnessNotion ;
+                          owl:disjointWith core:ObservationalFairnessNotion ;
+                          resource:hasSynonym "causal fairness"@en ;
+                          rdfs:label "Causal Fairness Notion"@en ;
+                          skos:definition "A family of fairness notions focusing on the causal relations between variables."@en .
+
+
+###  https://purl.org/fairops/core#ClassifierFairnessMetric
+core:ClassifierFairnessMetric rdf:type owl:Class ;
+                              rdfs:subClassOf core:GeneratedTextBasedFairnessMetric ;
+                              rdfs:label "Classifier Fairness Metric"@en ;
+                              skos:definition "A metric that employs a classifier on generated text to assess the presence of bias or fairness."@en .
+
+
+###  https://purl.org/fairops/core#Cleaning
+core:Cleaning rdf:type owl:Class ;
+              rdfs:subClassOf core:InstanceLevelRowIntervention ;
+              rdfs:label "Cleaning" .
+
+
+###  https://purl.org/fairops/core#ConfusionMatrixBasedFairnessMetric
+core:ConfusionMatrixBasedFairnessMetric rdf:type owl:Class ;
+                                        rdfs:subClassOf fmo:fairness_metric ;
+                                        rdfs:label "Confusion Matrix-based Fairness Metric"@en ;
+                                        skos:definition "A measurement of any fairness notion, focusing on the amount of correct/incorrect classifications inferred by the predictor."@en .
+
+
+###  https://purl.org/fairops/core#ConstrainedOptimization
+core:ConstrainedOptimization rdf:type owl:Class ;
+                             rdfs:subClassOf core:FullRetraining ;
+                             rdfs:label "Constrained Optimization" .
+
+
+###  https://purl.org/fairops/core#ConversationFairnessConcern
+core:ConversationFairnessConcern rdf:type owl:Class ;
+                                 rdfs:subClassOf core:FairnessConcern ,
+                                                 [ rdf:type owl:Restriction ;
+                                                   owl:onProperty core:arisesIn ;
+                                                   owl:hasValue core:Conversation
+                                                 ] .
+
+
+###  https://purl.org/fairops/core#CounterfactualAugmentation
+core:CounterfactualAugmentation rdf:type owl:Class ;
+                                rdfs:subClassOf core:InstanceLevelRowIntervention ;
+                                rdfs:label "Counterfactual Augmentation" .
+
+
+###  https://purl.org/fairops/core#DataGeneration
+core:DataGeneration rdf:type owl:Class ;
+                    rdfs:subClassOf core:DataResourcesMitigation ;
+                    rdfs:label "Data Acquisition/Generation (D)"@en .
+
+
+###  https://purl.org/fairops/core#DataResourcesMitigation
+core:DataResourcesMitigation rdf:type owl:Class ;
+                             rdfs:subClassOf core:MitigationTechnique ,
+                                             [ rdf:type owl:Restriction ;
+                                               owl:onProperty core:isAppliedAt ;
+                                               owl:allValuesFrom core:Pre-processing
+                                             ] ;
+                             rdfs:label "Data Resources Mitigation"@en .
+
+
+###  https://purl.org/fairops/core#DecisionTimeConstrainedDecisioning
+core:DecisionTimeConstrainedDecisioning rdf:type owl:Class ;
+                                        rdfs:subClassOf core:BlackBoxDecisionOnly ;
+                                        rdfs:label "Decision-time Constrained Decisioning" .
+
+
+###  https://purl.org/fairops/core#DistanceBasedFairnessMetric
+core:DistanceBasedFairnessMetric rdf:type owl:Class ;
+                                 rdfs:subClassOf fmo:fairness_metric ;
+                                 rdfs:label "Distance-based Fairness Metric" .
+
+
+###  https://purl.org/fairops/core#DistributionFairnessMetric
+core:DistributionFairnessMetric rdf:type owl:Class ;
+                                rdfs:subClassOf core:GeneratedTextBasedFairnessMetric ;
+                                rdfs:label "Distribution Fairness Metric"@en ;
+                                skos:definition "A metric that evaluates fairness by comparing the statistical distribution of generated outputs across groups."@en .
+
+
+###  https://purl.org/fairops/core#EmbeddingBasedFairnessMetric
+core:EmbeddingBasedFairnessMetric rdf:type owl:Class ;
+                                  rdfs:subClassOf fmo:fairness_metric ;
+                                  rdfs:label "Embedding-based Fairness Metric"@en ;
+                                  skos:definition "A fairness metric that evaluates bias or fairness using representations derived from word or sentence embeddings."@en .
+
+
+###  https://purl.org/fairops/core#EvidenceArtifact
+core:EvidenceArtifact rdf:type owl:Class ;
+                      rdfs:label "Evidence Artifact" ;
+                      skos:definition "Evidence expected for compliance and auditability. That is, a piece of documentation, data, or analytical output that provides verifiable information about the presence, assessment, or mitigation of a specific socio-technical concern in an AI system. It supports the evaluation of that concern by supplying measurable or auditable evidence (e.g., logs, dataset analyses, reports, or metrics) related to the system’s behavior, data, or operational context." .
+
+
+###  https://purl.org/fairops/core#FairnessConcern
+core:FairnessConcern rdf:type owl:Class ;
+                     rdfs:label "Fairness Concern"@en ;
+                     skos:definition "A fairness concern refers to a potential or observed issue where a system’s decisions or outcomes may unjustly favor or disadvantage certain individuals or groups. It highlights risks of bias, discrimination, or unequal treatment that require attention and mitigation." .
+
+
+###  https://purl.org/fairops/core#FairnessRegularization
+core:FairnessRegularization rdf:type owl:Class ;
+                            rdfs:subClassOf core:FullRetraining ;
+                            rdfs:label "Fairness Regularization" .
+
+
+###  https://purl.org/fairops/core#FeatureLevelColumnIntervention
+core:FeatureLevelColumnIntervention rdf:type owl:Class ;
+                                    rdfs:subClassOf core:DataResourcesMitigation ;
+                                    rdfs:label "Feature-level Column Intervention (A)"@en .
+
+
+###  https://purl.org/fairops/core#FeatureLevelRowReweightingResampling
+core:FeatureLevelRowReweightingResampling rdf:type owl:Class ;
+                                          rdfs:subClassOf core:DataResourcesMitigation ;
+                                          rdfs:label "Feature-level Row Reweighting/Resampling (C)"@en .
+
+
+###  https://purl.org/fairops/core#FeatureReview
+core:FeatureReview rdf:type owl:Class ;
+                   rdfs:subClassOf core:FeatureLevelColumnIntervention ;
+                   rdfs:label "Feature Review" .
+
+
+###  https://purl.org/fairops/core#FullFineTuning
+core:FullFineTuning rdf:type owl:Class ;
+                    rdfs:subClassOf core:ModelAccessResourcesMitigation ,
+                                    core:TrainingResourcesMitigation ;
+                    owl:disjointWith core:PartialFineTuning ;
+                    rdfs:label "Full Fine-tuning - White-box Model (F)"@en .
+
+
+###  https://purl.org/fairops/core#FullParameterDebiasing
+core:FullParameterDebiasing rdf:type owl:Class ;
+                            rdfs:subClassOf core:FullFineTuning ;
+                            rdfs:label "Full Parameter Debiasing" .
+
+
+###  https://purl.org/fairops/core#FullPruning
+core:FullPruning rdf:type owl:Class ;
+                 rdfs:subClassOf core:FullFineTuning ;
+                 rdfs:comment "A mitigation technique that prunes an already trained model by setting to 0 some of its weights. The model is considered AS A WHOLE, by taking into account for pruning all its internal weights." ;
+                 rdfs:label "Full Pruning and Weight Masking" .
+
+
+###  https://purl.org/fairops/core#FullRetraining
+core:FullRetraining rdf:type owl:Class ;
+                    rdfs:subClassOf core:TrainingResourcesMitigation ;
+                    rdfs:label "Full Retraining (E)"@en .
+
+
+###  https://purl.org/fairops/core#FullWeightRedistribution
+core:FullWeightRedistribution rdf:type owl:Class ;
+                              rdfs:subClassOf core:FullFineTuning ;
+                              rdfs:comment "A mitigation technique that redistributes the weights of an already trained model, considering it AS A WHOLE, potentially redistributing all its weights." ;
+                              rdfs:label "Full Weight Redistribution"@en .
+
+
+###  https://purl.org/fairops/core#GeneratedTextBasedFairnessMetric
+core:GeneratedTextBasedFairnessMetric rdf:type owl:Class ;
+                                      rdfs:subClassOf fmo:fairness_metric ;
+                                      rdfs:label "Generated Text-based Fairness Metric"@en ;
+                                      skos:definition "A metric that measures fairness by analyzing or scoring generated text outputs."@en .
+
+
+###  https://purl.org/fairops/core#Governance
+core:Governance rdf:type owl:Class ;
+                rdfs:subClassOf core:AILifecycleStep ;
+                rdfs:label "Governance" .
+
+
+###  https://purl.org/fairops/core#GovernanceOnly
+core:GovernanceOnly rdf:type owl:Class ;
+                    rdfs:subClassOf core:HumanOversightMitigation ;
+                    rdfs:label "Governance-only Interventions (J)"@en .
+
+
+###  https://purl.org/fairops/core#GranularityMetric
+core:GranularityMetric rdf:type owl:Class ;
+                       rdfs:subClassOf core:RecommendationSystemMetric ;
+                       rdfs:label "Granularity Metric"@en .
+
+
+###  https://purl.org/fairops/core#GreyBoxScores
+core:GreyBoxScores rdf:type owl:Class ;
+                   rdfs:subClassOf core:ModelAccessResourcesMitigation ,
+                                   [ rdf:type owl:Restriction ;
+                                     owl:onProperty core:isAppliedAt ;
+                                     owl:allValuesFrom core:Post-processing
+                                   ] ;
+                   rdfs:label "Scores and Probabilities Access - Grey-box Model (H)"@en .
+
+
+###  https://purl.org/fairops/core#GroupFairnessNotion
+core:GroupFairnessNotion rdf:type owl:Class ;
+                         rdfs:subClassOf core:OutcomeFairnessNotion ;
+                         owl:disjointWith core:IndividualFairnessNotion ;
+                         dc:source "https://doi.org/10.1145/3468507.3468511"^^xsd:anyURI ;
+                         resource:hasSynonym "group fairness"@en ;
+                         rdfs:label "Group Fairness Notion"@en ;
+                         skos:definition "A family of fairness notions with the common objective to ensure that groups who differ by their sensitive attributes are treated equally. (Note: Occasionally, \"group fairness\" is used to refer to statistical parity specifically, instead of the broader meaning as defined here)."@en .
+
+
+###  https://purl.org/fairops/core#HeadOnly
+core:HeadOnly rdf:type owl:Class ;
+              rdfs:subClassOf core:PartialFineTuning ;
+              rdfs:label "Head-only" .
+
+
+###  https://purl.org/fairops/core#HumanOversightMitigation
+core:HumanOversightMitigation rdf:type owl:Class ;
+                              rdfs:subClassOf core:MitigationTechnique ,
+                                              [ rdf:type owl:Restriction ;
+                                                owl:onProperty core:isAppliedAt ;
+                                                owl:allValuesFrom core:Governance
+                                              ] ;
+                              rdfs:label "Human Oversight Mitigation" .
+
+
+###  https://purl.org/fairops/core#ImpactFocusedMetric
+core:ImpactFocusedMetric rdf:type owl:Class ;
+                         rdfs:subClassOf core:OptimizationObjectMetric ;
+                         rdfs:label "Impact-focused Metric"@en .
+
+
+###  https://purl.org/fairops/core#In-processing
+core:In-processing rdf:type owl:Class ;
+                   rdfs:subClassOf core:AILifecycleStep ;
+                   rdfs:label "In-processing" .
+
+
+###  https://purl.org/fairops/core#IndependenceFairnessNotion
+core:IndependenceFairnessNotion rdf:type owl:Class ;
+                                rdfs:subClassOf core:GroupFairnessNotion ;
+                                dc:source "https://doi.org/10.1145/3468507.3468511"^^xsd:anyURI ;
+                                resource:hasSynonym "independence fairness"@en ;
+                                rdfs:label "Independence Fairness Notion"@en ;
+                                skos:definition "The fairness property satisfied when the predicted outcome variable is independent from protected attributes."@en ;
+                                fmo:probabilistic_definition "Ŷ ⊥ A"@en .
+
+
+###  https://purl.org/fairops/core#IndividualFairnessNotion
+core:IndividualFairnessNotion rdf:type owl:Class ;
+                              rdfs:subClassOf core:OutcomeFairnessNotion ;
+                              dc:source "https://doi.org/10.1145/2090236.2090255"^^xsd:anyURI ;
+                              resource:hasSynonym "individual fairness"@en ;
+                              rdfs:label "Individual Fairness Notion"@en ;
+                              skos:definition "A family of fairness notions with the common objective to ensure that similar individuals are treated similarly by a model. Some notions in this group may be a relaxed version of &quot;strict&quot; individual fairness (i.e., they may treat similar indivduals differently under certain conditions)."@en .
+
+
+###  https://purl.org/fairops/core#InstanceLevelRowIntervention
+core:InstanceLevelRowIntervention rdf:type owl:Class ;
+                                  rdfs:subClassOf core:DataResourcesMitigation ;
+                                  rdfs:label "Feature-level Row Intervention (B)"@en .
+
+
+###  https://purl.org/fairops/core#InstanceWeighting
+core:InstanceWeighting rdf:type owl:Class ;
+                       rdfs:subClassOf core:FeatureLevelRowReweightingResampling ;
+                       rdfs:label "Instance Weighting" .
+
+
+###  https://purl.org/fairops/core#ItemFocusedMetric
+core:ItemFocusedMetric rdf:type owl:Class ;
+                       rdfs:subClassOf core:SubjectMetric ;
+                       rdfs:label "Item-focused Metric"@en .
+
+
+###  https://purl.org/fairops/core#LearningAndPerception
+core:LearningAndPerception rdf:type owl:Class ;
+                           rdfs:subClassOf core:AITask ;
+                           rdfs:label "Learning And Perception" .
+
+
+###  https://purl.org/fairops/core#LegalRequirement
+core:LegalRequirement rdf:type owl:Class ;
+                      rdfs:label "Legal Requirement" ;
+                      skos:definition "A law or regulation article that constrains the AI systems activity, specifically to operate fairly, without unjust bias or discrimination against individuals or groups." .
+
+
+###  https://purl.org/fairops/core#Legislation
+core:Legislation rdf:type owl:Class ;
+                 rdfs:label "Legislation" .
+
+
+###  https://purl.org/fairops/core#LexiconFairnessMetric
+core:LexiconFairnessMetric rdf:type owl:Class ;
+                           rdfs:subClassOf core:GeneratedTextBasedFairnessMetric ;
+                           rdfs:label "Lexicon Fairness Metric"@en ;
+                           skos:definition "A metric that uses predefined lexicons to study fairness or bias in generated textual content."@en .
+
+
+###  https://purl.org/fairops/core#LoRA
+core:LoRA rdf:type owl:Class ;
+          rdfs:subClassOf core:PartialFineTuning ;
+          rdfs:label "LoRA" .
+
+
+###  https://purl.org/fairops/core#ManagementLegalRequirement
+core:ManagementLegalRequirement rdf:type owl:Class ;
+                                rdfs:subClassOf core:LegalRequirement ;
+                                rdfs:label "Management Legal Requirement" .
+
+
+###  https://purl.org/fairops/core#MaskedTokenFairnessMetric
+core:MaskedTokenFairnessMetric rdf:type owl:Class ;
+                               rdfs:subClassOf core:ProbabilityBasedFairnessMetric ;
+                               rdfs:label "Masked Token Fairness Metric"@en ;
+                               skos:definition "A fairness metric relying on the predicted probabilities for masked tokens in language models."@en .
+
+
+###  https://purl.org/fairops/core#MitigationTechnique
+core:MitigationTechnique rdf:type owl:Class ;
+                         rdfs:subClassOf core:ScientificArtifact ;
+                         rdfs:label "Mitigation Technique"@en ;
+                         skos:definition "A method used to identify, reduce, or prevent unfair bias in data, models, or decision-making processes. It aims to improve fairness and reduce discriminatory outcomes across different groups or individuals." .
+
+
+###  https://purl.org/fairops/core#ModelAccessResourcesMitigation
+core:ModelAccessResourcesMitigation rdf:type owl:Class ;
+                                    rdfs:subClassOf core:MitigationTechnique ;
+                                    rdfs:label "Model Access Resources Mitigation"@en .
+
+
+###  https://purl.org/fairops/core#ObservationalFairnessNotion
+core:ObservationalFairnessNotion rdf:type owl:Class ;
+                                 rdfs:subClassOf core:OutcomeFairnessNotion ;
+                                 resource:hasSynonym "observational fairness"@en ;
+                                 rdfs:label "Observational Fairness Notion"@en ;
+                                 skos:definition "A family of fairness notions focusing on the joint distribution of observable factors."@en .
+
+
+###  https://purl.org/fairops/core#OptimizationObjectMetric
+core:OptimizationObjectMetric rdf:type owl:Class ;
+                              rdfs:subClassOf core:RecommendationSystemMetric ;
+                              rdfs:label "Optimization Object Metric"@en .
+
+
+###  https://purl.org/fairops/core#OutcomeFairnessNotion
+core:OutcomeFairnessNotion rdf:type owl:Class ;
+                           rdfs:subClassOf fmo:fairness_notion ;
+                           owl:disjointWith core:ProceduralFairnessNotion ;
+                           resource:hasSynonym "outcome fairness"@en ;
+                           rdfs:label "Outcome Fairness Notion"@en ;
+                           skos:definition "Outcome fairness is concerned with the fairness of the results of the decision-making process."@en .
+
+
+###  https://purl.org/fairops/core#OutputRewriting
+core:OutputRewriting rdf:type owl:Class ;
+                     rdfs:subClassOf core:BlackBoxDecisionOnly ;
+                     rdfs:label "Decision/Output Re-writing" .
+
+
+###  https://purl.org/fairops/core#ParityBasedFairnessMetric
+core:ParityBasedFairnessMetric rdf:type owl:Class ;
+                               rdfs:subClassOf fmo:fairness_metric ;
+                               rdfs:label "Parity-based Fairness Metric"@en ;
+                               skos:definition "A measurement of any fairness notion, focusing on equalising the probability of a favourable outcome among groups."@en .
+
+
+###  https://purl.org/fairops/core#PartialFineTuning
+core:PartialFineTuning rdf:type owl:Class ;
+                       rdfs:subClassOf core:ModelAccessResourcesMitigation ,
+                                       core:TrainingResourcesMitigation ;
+                       rdfs:label "Partial Fine-tuning - White-box Model (G)"@en .
+
+
+###  https://purl.org/fairops/core#PartialPruning
+core:PartialPruning rdf:type owl:Class ;
+                    rdfs:subClassOf core:PartialFineTuning ;
+                    rdfs:comment "A mitigation technique that prunes a SUBPART OF an already trained model by setting to 0 some of its weights." ;
+                    rdfs:label "Partial Pruning and Weight Masking" .
+
+
+###  https://purl.org/fairops/core#Post-processing
+core:Post-processing rdf:type owl:Class ;
+                     rdfs:subClassOf core:AILifecycleStep ;
+                     rdfs:label "Post-processing" .
+
+
+###  https://purl.org/fairops/core#Pre-processing
+core:Pre-processing rdf:type owl:Class ;
+                    rdfs:subClassOf core:AILifecycleStep ;
+                    rdfs:label "Pre-processing" .
+
+
+###  https://purl.org/fairops/core#ProbabilityBasedFairnessMetric
+core:ProbabilityBasedFairnessMetric rdf:type owl:Class ;
+                                    rdfs:subClassOf fmo:fairness_metric ;
+                                    rdfs:label "Probability-based Fairness Metric"@en ;
+                                    skos:definition "A metric that considers the probability distributions of predicted outcomes to measure fairness."@en .
+
+
+###  https://purl.org/fairops/core#ProceduralFairnessNotion
+core:ProceduralFairnessNotion rdf:type owl:Class ;
+                              rdfs:subClassOf fmo:fairness_notion ;
+                              resource:hasSynonym "procedural fairness"@en ;
+                              rdfs:label "Procedural Fairness Notion"@en ;
+                              skos:definition "Procedural fairness is connected to the concept of fairness from administrative law, which is concerned with equality of treatment within the process that makes a decision."@en .
+
+
+###  https://purl.org/fairops/core#PseudoLogLikelihoodFairnessMetric
+core:PseudoLogLikelihoodFairnessMetric rdf:type owl:Class ;
+                                       rdfs:subClassOf core:ProbabilityBasedFairnessMetric ;
+                                       rdfs:label "Pseudo-log Likelihood Fairness Metric"@en ;
+                                       skos:definition "A metric based on pseudo-log likelihoods, often used to evaluate the fairness of generation or prediction probabilities."@en .
+
+
+###  https://purl.org/fairops/core#ReasoningAndDecisionMaking
+core:ReasoningAndDecisionMaking rdf:type owl:Class ;
+                                rdfs:subClassOf core:AITask ;
+                                rdfs:label "Reasoning And Decision Making" .
+
+
+###  https://purl.org/fairops/core#RecommendationFairnessConcern
+core:RecommendationFairnessConcern rdf:type owl:Class ;
+                                   rdfs:subClassOf core:FairnessConcern ,
+                                                   [ rdf:type owl:Restriction ;
+                                                     owl:onProperty core:arisesIn ;
+                                                     owl:hasValue core:Recommendation
+                                                   ] .
+
+
+###  https://purl.org/fairops/core#RecommendationSystemMetric
+core:RecommendationSystemMetric rdf:type owl:Class ;
+                                rdfs:subClassOf fmo:fairness_metric ;
+                                rdfs:label "Recommendation System Metric"@en .
+
+
+###  https://purl.org/fairops/core#Relabeling
+core:Relabeling rdf:type owl:Class ;
+                rdfs:subClassOf core:InstanceLevelRowIntervention ;
+                rdfs:label "Relabeling" .
+
+
+###  https://purl.org/fairops/core#Reranking
+core:Reranking rdf:type owl:Class ;
+               rdfs:subClassOf core:BlackBoxDecisionOnly ;
+               rdfs:label "Re-ranking" .
+
+
+###  https://purl.org/fairops/core#ScientificArtifact
+core:ScientificArtifact rdf:type owl:Class ;
+                        rdfs:label "Scientific Artifact"@en ;
+                        skos:definition "A scientific artifact is the outcome with which the the paper contributes, such as a fairness notion, metric, and so on."@en .
+
+
+###  https://purl.org/fairops/core#ScientificPaper
+core:ScientificPaper rdf:type owl:Class ;
+                     rdfs:label "Scientific Paper"@en ;
+                     skos:definition "A scientific manuscript published in a journal, conference proceedings or made pubblicly available online."@en .
+
+
+###  https://purl.org/fairops/core#Scoping
+core:Scoping rdf:type owl:Class ;
+             rdfs:subClassOf core:AILifecycleStep ;
+             rdfs:label "Scoping" .
+
+
+###  https://purl.org/fairops/core#ScoreBasedFairnessMetric
+core:ScoreBasedFairnessMetric rdf:type owl:Class ;
+                              rdfs:subClassOf fmo:fairness_metric ;
+                              rdfs:label "Score-based Fairness Metric"@en ;
+                              skos:definition "A measurement of any fairness notion, directing attention to the value of the classification score."@en .
+
+
+###  https://purl.org/fairops/core#SelectiveParameterUpdating
+core:SelectiveParameterUpdating rdf:type owl:Class ;
+                                rdfs:subClassOf core:PartialFineTuning ;
+                                rdfs:comment "A mitigation technique that updates the parameters (e.g., redistributes the weights) of a SUBPART OF an already trained model." ;
+                                rdfs:label "Selective Parameter Updating" .
+
+
+###  https://purl.org/fairops/core#SentenceEmbeddingFairnessMetric
+core:SentenceEmbeddingFairnessMetric rdf:type owl:Class ;
+                                     rdfs:subClassOf core:EmbeddingBasedFairnessMetric ;
+                                     rdfs:label "Sentence Embedding Fairness Metric"@en ;
+                                     skos:definition "A metric using sentence-level embedding representations as the basis for evaluating model or data fairness."@en .
+
+
+###  https://purl.org/fairops/core#SeparationFairnessNotion
+core:SeparationFairnessNotion rdf:type owl:Class ;
+                              rdfs:subClassOf core:GroupFairnessNotion ;
+                              dc:source "https://doi.org/10.1145/3468507.3468511"^^xsd:anyURI ;
+                              resource:hasSynonym "separation fairness"@en ;
+                              rdfs:label "Separation Fairness Notion"@en ;
+                              skos:definition "The fairness property satisfied when the predicted outcome variable is independent of protected attributes, conditionally on the actual outcome variable."@en ;
+                              fmo:probabilistic_definition "Ŷ ⊥ A | Y"@en .
+
+
+###  https://purl.org/fairops/core#SingleGranularityMetric
+core:SingleGranularityMetric rdf:type owl:Class ;
+                             rdfs:subClassOf core:GranularityMetric ;
+                             rdfs:label "Single Granularity Metric"@en .
+
+
+###  https://purl.org/fairops/core#SocialPrinciple
+core:SocialPrinciple rdf:type owl:Class ;
+                     rdfs:label "Social Principle"@en ;
+                     skos:definition "Ethical and contextual interpretation of fairness, informing notions."@en .
+
+
+###  https://purl.org/fairops/core#StratifiedSampling
+core:StratifiedSampling rdf:type owl:Class ;
+                        rdfs:subClassOf core:FeatureLevelRowReweightingResampling ;
+                        rdfs:label "Stratified Sampling" .
+
+
+###  https://purl.org/fairops/core#SubjectMetric
+core:SubjectMetric rdf:type owl:Class ;
+                   rdfs:subClassOf core:RecommendationSystemMetric ;
+                   rdfs:label "Subject Metric"@en .
+
+
+###  https://purl.org/fairops/core#SufficiencyFairnessNotion
+core:SufficiencyFairnessNotion rdf:type owl:Class ;
+                               rdfs:subClassOf core:GroupFairnessNotion ;
+                               dc:source "https://doi.org/10.1145/3468507.3468511"^^xsd:anyURI ;
+                               resource:hasSynonym "sufficiency fairness"@en ;
+                               rdfs:label "Sufficiency Fairness Notion"@en ;
+                               skos:definition "The fairness property satisfied when a target variable is independent of protected attributes, conditionally on the predicted outcome variable."@en ;
+                               fmo:probabilistic_definition "Y ⊥ A | Ŷ"@en .
+
+
+###  https://purl.org/fairops/core#SyntheticData
+core:SyntheticData rdf:type owl:Class ;
+                   rdfs:subClassOf core:DataGeneration ;
+                   rdfs:label "Synthetic Data" .
+
+
+###  https://purl.org/fairops/core#TargetedCollections
+core:TargetedCollections rdf:type owl:Class ;
+                         rdfs:subClassOf core:DataGeneration ;
+                         rdfs:label "Targeted Collections" .
+
+
+###  https://purl.org/fairops/core#TechnicalLegalRequirement
+core:TechnicalLegalRequirement rdf:type owl:Class ;
+                               rdfs:subClassOf core:LegalRequirement ;
+                               rdfs:label "Technical Legal Requirement" .
+
+
+###  https://purl.org/fairops/core#Thresholding
+core:Thresholding rdf:type owl:Class ;
+                  rdfs:subClassOf core:GreyBoxScores ;
+                  rdfs:label "Thresholding" .
+
+
+###  https://purl.org/fairops/core#TrainingResourcesMitigation
+core:TrainingResourcesMitigation rdf:type owl:Class ;
+                                 rdfs:subClassOf core:MitigationTechnique ,
+                                                 [ rdf:type owl:Restriction ;
+                                                   owl:onProperty core:isAppliedAt ;
+                                                   owl:allValuesFrom core:In-processing
+                                                 ] ;
+                                 rdfs:label "Training Resources Mitigation"@en .
+
+
+###  https://purl.org/fairops/core#Transformation
+core:Transformation rdf:type owl:Class ;
+                    rdfs:subClassOf core:InstanceLevelRowIntervention ;
+                    rdfs:label "Transformation/Representation Learning" .
+
+
+###  https://purl.org/fairops/core#TreatmentFocusedMetric
+core:TreatmentFocusedMetric rdf:type owl:Class ;
+                            rdfs:subClassOf core:OptimizationObjectMetric ;
+                            rdfs:label "Treatment-focused Metric"@en .
+
+
+###  https://purl.org/fairops/core#UserFocusedMetric
+core:UserFocusedMetric rdf:type owl:Class ;
+                       rdfs:subClassOf core:SubjectMetric ;
+                       rdfs:label "User-focused Metric"@en .
+
+
+###  https://purl.org/fairops/core#WordEmbeddingFairnessMetric
+core:WordEmbeddingFairnessMetric rdf:type owl:Class ;
+                                 rdfs:subClassOf core:EmbeddingBasedFairnessMetric ;
+                                 rdfs:label "Word Embedding Fairness Metric"@en ;
+                                 skos:definition "A metric that leverages word vector representations to assess fairness or bias in language models or datasets."@en .
+
+
+###  https://purl.org/twc/fmo#fairness_metric
+fmo:fairness_metric rdf:type owl:Class ;
+                    rdfs:subClassOf core:ScientificArtifact ;
+                    dc:source "https://doi.org/10.1145/3468507.3468511"^^xsd:anyURI ;
+                    rdfs:label "Fairness Metric"@en ;
+                    skos:definition "A measurement of some fairness notion in a machine-learning model or dataset, with regards to some specific cohort(s)."@en .
+
+
+###  https://purl.org/twc/fmo#fairness_notion
+fmo:fairness_notion rdf:type owl:Class ;
+                    rdfs:subClassOf core:ScientificArtifact ;
+                    dc:source "https://doi.org/10.1145/3468507.3468511"^^xsd:anyURI ;
+                    resource:hasSynonym "criterion"@en ,
+                                        "fairness"@en ;
+                    rdfs:label "Fairness Notion"@en ;
+                    skos:definition """A conceptual or normative principle that specifies what it means for an AI
+system to be fair, i.e., a formal definition of fairness that can be observed as a property of an AI model, in relation to that model's treatment of different cohorts."""@en .
+
+
+###  https://www.w3.org/TR/vocab-dcat-3/Dataset
+<https://www.w3.org/TR/vocab-dcat-3/Dataset> rdf:type owl:Class ;
+                                             rdfs:label "Dataset"@en ;
+                                             skos:definition "A dataset used by an AI system"@en .
+
+
+#################################################################
+#    Individuals
+#################################################################
+
+###  https://purl.org/fairops/core#AbductiveReasoning
+core:AbductiveReasoning rdf:type owl:NamedIndividual ,
+                                 core:ReasoningAndDecisionMaking .
+
+
+###  https://purl.org/fairops/core#AlgorithmicBias
+core:AlgorithmicBias rdf:type owl:NamedIndividual ,
+                              docbias:Bias ;
+                     dc:source "https://doi.org/10.1145/3457607"^^xsd:anyURI ;
+                     rdfs:label "Algorithmic Bias"@en ;
+                     skos:definition "Algorithmic bias is when the bias is not present in the input data and is added purely by the algorithm."@en .
+
+
+###  https://purl.org/fairops/core#AnalyticsApproach
+core:AnalyticsApproach rdf:type owl:NamedIndividual ,
+                                core:Scoping ;
+                       core:isFollowedBy core:DataRequirements .
+
+
+###  https://purl.org/fairops/core#BenchmarkAndCounterfactualEvaluationReports
+core:BenchmarkAndCounterfactualEvaluationReports rdf:type owl:NamedIndividual ,
+                                                          core:EvidenceArtifact ;
+                                                 skos:definition "assessments that measure an AI system’s performance and fairness using two complementary approaches. Benchmark evaluations compare the system against established standards, datasets, or metrics to see how well it performs overall. Counterfactual evaluations test how the system’s outputs would change if certain inputs, conditions, or group attributes were altered, revealing potential biases or unfair treatment. Together, these reports provide evidence of accuracy, consistency, and fairness across different scenarios."@en .
+
+
+###  https://purl.org/fairops/core#BiasPerpetuation
+core:BiasPerpetuation rdf:type owl:NamedIndividual ,
+                               core:RecommendationFairnessConcern ;
+                      core:arisesIn core:Recommendation ;
+                      skos:definition "When recommender systems learn from historical data, they are prone to absorbing and reproducing any biases present in that data"@en .
+
+
+###  https://purl.org/fairops/core#BusinessRequirements
+core:BusinessRequirements rdf:type owl:NamedIndividual ,
+                                   core:Scoping ;
+                          core:isFollowedBy core:AnalyticsApproach .
+
+
+###  https://purl.org/fairops/core#Classification
+core:Classification rdf:type owl:NamedIndividual ,
+                             core:LearningAndPerception .
+
+
+###  https://purl.org/fairops/core#ConformityAssesmentReport
+core:ConformityAssesmentReport rdf:type owl:NamedIndividual ,
+                                        core:EvidenceArtifact .
+
+
+###  https://purl.org/fairops/core#ConstraintOptimization
+core:ConstraintOptimization rdf:type owl:NamedIndividual ,
+                                     core:ReasoningAndDecisionMaking .
+
+
+###  https://purl.org/fairops/core#ConstraintSolving
+core:ConstraintSolving rdf:type owl:NamedIndividual ,
+                                core:ReasoningAndDecisionMaking .
+
+
+###  https://purl.org/fairops/core#Conversation
+core:Conversation rdf:type owl:NamedIndividual ,
+                           core:AITypeOfUse .
+
+
+###  https://purl.org/fairops/core#DataCollection
+core:DataCollection rdf:type owl:NamedIndividual ,
+                             core:Pre-processing ;
+                    core:isFollowedBy core:ExploratoryDataAnalysis .
+
+
+###  https://purl.org/fairops/core#DataPreparation
+core:DataPreparation rdf:type owl:NamedIndividual ,
+                              core:Pre-processing ;
+                     core:isFollowedBy core:ModelSelection .
+
+
+###  https://purl.org/fairops/core#DataRequirements
+core:DataRequirements rdf:type owl:NamedIndividual ,
+                               core:Scoping ;
+                      core:isFollowedBy core:DataCollection .
+
+
+###  https://purl.org/fairops/core#DatasetRepresentativenessReport
+core:DatasetRepresentativenessReport rdf:type owl:NamedIndividual ,
+                                              core:EvidenceArtifact ;
+                                     skos:definition "evaluates how well the dataset reflects the target population, with the goal of ensururing no group is systematically under- or over-represented.. It usually includes: Group distribution analysis (e.g., gender, age, region), Coverage checks (are some groups missing or underrepresented?), Sampling bias detection,Comparisons to a reference or real-world distribution"@en .
+
+
+###  https://purl.org/fairops/core#DerogatoryLanguage
+core:DerogatoryLanguage rdf:type owl:NamedIndividual ,
+                                 core:ConversationFairnessConcern ;
+                        core:arisesIn core:Conversation ;
+                        skos:definition "Derogatory language refers to insulting slurs, demeaning expressions, or any terms used to attack or belittle a particular social group."@en .
+
+
+###  https://purl.org/fairops/core#Dialogue
+core:Dialogue rdf:type owl:NamedIndividual ,
+                       core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#DisparateSystemPerformance
+core:DisparateSystemPerformance rdf:type owl:NamedIndividual ,
+                                         core:ConversationFairnessConcern ;
+                                core:arisesIn core:Conversation ;
+                                skos:definition "Reduced language understanding, diversity, or richness in processing or generation across different social or linguistic groups."@en .
+
+
+###  https://purl.org/fairops/core#DocumentationOfSafeguardsAndEffectiveness
+core:DocumentationOfSafeguardsAndEffectiveness rdf:type owl:NamedIndividual ,
+                                                        core:EvidenceArtifact ;
+                                               skos:definition "describes the measures implemented to prevent harm, bias, or unsafe behavior in an AI system and provides evidence showing how well those measures work. It explains the protections in place, such as moderation rules, human oversight, or bias mitigation, and demonstrates through metrics, tests, or audits that these measures reduce harm or unfair outcomes. This documentation ensures transparency, accountability, and regulatory compliance by showing that the system is responsibly managed."@en .
+
+
+###  https://purl.org/fairops/core#DocumentationOnJustificationOfEnrichmentStrategiesAndResidualRisk
+core:DocumentationOnJustificationOfEnrichmentStrategiesAndResidualRisk rdf:type owl:NamedIndividual ,
+                                                                                core:EvidenceArtifact ;
+                                                                       skos:definition "a documented explanation of why specific data improvements were chosen and how they address identified gaps or biases. Also, clearly states the remaining limitations or uncertainties after mitigation, ensuring transparency about unresolved risks."@en .
+
+
+###  https://purl.org/fairops/core#DriftContextShiftLogs
+core:DriftContextShiftLogs rdf:type owl:NamedIndividual ,
+                                    core:EvidenceArtifact ;
+                           skos:definition "capture statistical changes in data or model behavior over time (data drifts) and track changes in the environment or system context (context-shift, like a change in the User Interface); used to detect when a model is no longer operating under the same conditions it was trained on—which can introduce bias, errors, or unfair outcomes. A typical log entry might include:Timestamp, What changed (data distribution, UI, policy, etc.), Metrics before/after, Affected groups (if known), Alerts triggered (e.g., fairness threshold breached), Actions taken (or not)"@en .
+
+
+###  https://purl.org/fairops/core#EU_AI_Act
+core:EU_AI_Act rdf:type owl:NamedIndividual ,
+                        core:Legislation ;
+               dc:source "https://www.euaiact.com/" ;
+               rdfs:label "EU AI Act" .
+
+
+###  https://purl.org/fairops/core#Education
+core:Education rdf:type owl:NamedIndividual ,
+                        core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#EqualityPrincipal
+core:EqualityPrincipal rdf:type owl:NamedIndividual ,
+                                core:SocialPrinciple ;
+                       rdfs:label "Equality"@en ;
+                       skos:definition "Equality is giving everyone the same resources and opportunities."@en .
+
+
+###  https://purl.org/fairops/core#EquityPrinciple
+core:EquityPrinciple rdf:type owl:NamedIndividual ,
+                              core:SocialPrinciple ;
+                     rdfs:label "Equity"@en ;
+                     skos:definition "Equity is providing different resources based on individual needs to ensure everyone has an equal outcome."@en .
+
+
+###  https://purl.org/fairops/core#Erasure
+core:Erasure rdf:type owl:NamedIndividual ,
+                      core:ConversationFairnessConcern ;
+             core:arisesIn core:Conversation ;
+             skos:definition "Systematically overlooking or obscuring a social group’s language, identities, and lived experiences."@en .
+
+
+###  https://purl.org/fairops/core#EvaluationReportsOnOmissionCoverageGaps
+core:EvaluationReportsOnOmissionCoverageGaps rdf:type owl:NamedIndividual ,
+                                                      core:EvidenceArtifact ;
+                                             skos:definition "assessments that identify and document areas where an AI system or dataset fails to adequately represent certain groups, topics, or scenarios. These reports measure how well the system includes all relevant populations or information, highlighting missing data, underrepresented groups, or overlooked content. They help quantify potential bias or unfairness and guide interventions to improve coverage, ensuring the system’s outputs are more complete, representative, and equitable."@en .
+
+
+###  https://purl.org/fairops/core#ExclusionaryNorms
+core:ExclusionaryNorms rdf:type owl:NamedIndividual ,
+                                core:ConversationFairnessConcern ;
+                       core:arisesIn core:Conversation ;
+                       skos:definition "An implicit exclusion or devaluation of an already disadvantaged social group, reinforcing the standards, assumptions, and worldviews of the dominant social group, while implicitly sidelining or devaluing those who do not fit within those boundaries"@en .
+
+
+###  https://purl.org/fairops/core#ExploratoryDataAnalysis
+core:ExploratoryDataAnalysis rdf:type owl:NamedIndividual ,
+                                      core:Pre-processing ;
+                             core:isFollowedBy core:DataPreparation .
+
+
+###  https://purl.org/fairops/core#ExposureDistributionReports
+core:ExposureDistributionReports rdf:type owl:NamedIndividual ,
+                                          core:EvidenceArtifact ;
+                                 skos:definition "analyses that measure how visibility or recommendations are distributed across items or groups, using divergence metrics (e.g., JSD, NDKL) to detect imbalance. They show whether certain items or groups receive disproportionately more or less exposure compared to a fair or expected distribution."@en .
+
+
+###  https://purl.org/fairops/core#FRIAReport
+core:FRIAReport rdf:type owl:NamedIndividual ,
+                         core:EvidenceArtifact .
+
+
+###  https://purl.org/fairops/core#FeedbackLoopOverfitting
+core:FeedbackLoopOverfitting rdf:type owl:NamedIndividual ,
+                                      core:RecommendationFairnessConcern ;
+                             core:arisesIn core:Recommendation ;
+                             skos:definition "Given the existence of a feedback loop in the system, an item displayed by the recommender system may result in an action, which is then used to retrain the model, thus possibly reinforcing any bias already affecting the system."@en .
+
+
+###  https://purl.org/fairops/core#FinanceAndInsurance
+core:FinanceAndInsurance rdf:type owl:NamedIndividual ,
+                                  core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#GlobalKPIEvaluationReport
+core:GlobalKPIEvaluationReport rdf:type owl:NamedIndividual ,
+                                        core:EvidenceArtifact ;
+                               skos:definition "Global evaluations assess overall KPI across all users"@en .
+
+
+###  https://purl.org/fairops/core#GovernanceRecordsForDatasetUpdates
+core:GovernanceRecordsForDatasetUpdates rdf:type owl:NamedIndividual ,
+                                                 core:EvidenceArtifact ;
+                                        skos:definition "official records that track changes made to an AI system’s datasets. They document what data was added, removed, or modified, who authorized the change, when it occurred, and why it was done. These records ensure transparency, accountability, and traceability, helping organizations demonstrate responsible data management and maintain compliance with regulatory or ethical standards."@en .
+
+
+###  https://purl.org/fairops/core#GroupWisePerformanceAndCalibrationDashboards
+core:GroupWisePerformanceAndCalibrationDashboards rdf:type owl:NamedIndividual ,
+                                                           core:EvidenceArtifact ;
+                                                  skos:definition "visual tools that show how an AI system performs across different user groups. They track metrics like accuracy, prediction reliability, and calibration for each segment, making it easy to see disparities or biases. These dashboards allow ongoing monitoring, help identify underperforming groups, and provide evidence for corrective actions or fairness audits."@en .
+
+
+###  https://purl.org/fairops/core#Healthcare
+core:Healthcare rdf:type owl:NamedIndividual ,
+                         core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#HistoricalBias
+core:HistoricalBias rdf:type owl:NamedIndividual ,
+                             docbias:Bias ;
+                    dc:source "https://doi.org/10.1145/3457607"^^xsd:anyURI ;
+                    rdfs:label "Historical Bias"@en ;
+                    skos:definition "Historical bias is caused by already existing bias and socio-technical issues in the world, and can seep into from the data generation process even given a perfect sampling and feature selection."@en .
+
+
+###  https://purl.org/fairops/core#HumanOversightRulesThresholdsForIntervention
+core:HumanOversightRulesThresholdsForIntervention rdf:type owl:NamedIndividual ,
+                                                           core:EvidenceArtifact ;
+                                                  skos:definition "predefined, recorded criteria that specify when humans must review or override system outputs (e.g., if fairness metrics or risk indicators cross set thresholds). They ensure consistent, accountable intervention by defining who acts, under what conditions, and what actions are taken."@en .
+
+
+###  https://purl.org/fairops/core#HumanResources
+core:HumanResources rdf:type owl:NamedIndividual ,
+                             core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#ICTSecurity
+core:ICTSecurity rdf:type owl:NamedIndividual ,
+                          core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#IncompleteHistoricalExamples
+core:IncompleteHistoricalExamples rdf:type owl:NamedIndividual ,
+                                           core:RecommendationFairnessConcern ;
+                                  core:arisesIn core:Recommendation ;
+                                  skos:definition "A fairness concern in which the historical data available to an AI system provides an incomplete representation of users, items, interactions, or outcomes, causing certain groups or scenarios to be underrepresented and potentially resulting in unfair or less accurate system behavior. Occurs when the historical data on which the recommender system has been trained systematically lacks information that is valuable to provide good recommendations for certain items or users."@en ,
+                                                  "When the historical data on which the recommender system has been trained systematically lacks information that is valuable to provide good recommendations for certain items or users."@en .
+
+
+###  https://purl.org/fairops/core#InformationRetrival
+core:InformationRetrival rdf:type owl:NamedIndividual ,
+                                  core:LearningAndPerception .
+
+
+###  https://purl.org/fairops/core#InstructionsForUse
+core:InstructionsForUse rdf:type owl:NamedIndividual ,
+                                 core:EvidenceArtifact .
+
+
+###  https://purl.org/fairops/core#IntersectionalBias
+core:IntersectionalBias rdf:type owl:NamedIndividual ,
+                                 docbias:Bias ;
+                        dc:source "https://doi.org/10.1145/3468507.3468511"^^xsd:anyURI ;
+                        rdfs:label "Intersectional Bias"@en ;
+                        skos:definition "Intersectional bias is a type of bias that occurs due to the combination of multiple sensitive factors. So, the AI system may behave fairly for each attribute separately but unfairly for certain subgroups at their intersections."@en .
+
+
+###  https://purl.org/fairops/core#LawAndJustice
+core:LawAndJustice rdf:type owl:NamedIndividual ,
+                            core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#LinguisticBias
+core:LinguisticBias rdf:type owl:NamedIndividual ,
+                             docbias:Bias ;
+                    rdfs:label "Linguistic Bias"@en ;
+                    skos:definition "Linguistic bias is embedded in generative AI outputs, the manifestation of harm through demeaning or offensive language that reinforces discrimination."@en .
+
+
+###  https://purl.org/fairops/core#Logs
+core:Logs rdf:type owl:NamedIndividual ,
+                   core:EvidenceArtifact .
+
+
+###  https://purl.org/fairops/core#LogsOfInterventions
+core:LogsOfInterventions rdf:type owl:NamedIndividual ,
+                                  core:EvidenceArtifact ;
+                         skos:definition """detailed records of actions taken to correct, mitigate, or manage undesirable behavior in an AI system. In the context of fairness, these logs document when and how the system’s outputs were flagged, modified, or blocked. They typically include:
+Timestamp of the intervention, Reason for the action (e.g., offensive content, biased recommendation), Type of intervention (e.g., content filter applied, model retraining, human review), Outcome or resolution (e.g., corrected recommendation, blocked message)"""@en .
+
+
+###  https://purl.org/fairops/core#LongitudinalKPIsTrendsOverTime
+core:LongitudinalKPIsTrendsOverTime rdf:type owl:NamedIndividual ,
+                                             core:EvidenceArtifact ;
+                                    skos:definition "track how much harmful or offensive language an AI system produces or allows, measured continuously or periodically. Helps identify trends, evaluate whether mitigation strategies are effective, and ensure the system maintains fairness and safety for all user groups."@en .
+
+
+###  https://purl.org/fairops/core#LongitudinalParityErrorDivergenceTrendsReport
+core:LongitudinalParityErrorDivergenceTrendsReport rdf:type owl:NamedIndividual ,
+                                                            core:EvidenceArtifact ;
+                                                   skos:definition "tracking fairness and distribution metrics (like Disparate Impact, Non-parity Unfariness, Overestimation Unfairness,True Positive Rate Difference, JS Divergence, NDKL) over time (not just at one snapshot) to see how a system evolves—especially to catch feedback loops, drift, or emerging bias. In practice, the report contains time series plots for the selected metrics, possibily splited by group"@en .
+
+
+###  https://purl.org/fairops/core#MaskingBias
+core:MaskingBias rdf:type owl:NamedIndividual ,
+                          docbias:Bias ;
+                 dc:source "https://doi.org/10.1145/3468507.3468511"^^xsd:anyURI ;
+                 rdfs:label "Masking Bias"@en ;
+                 skos:definition "Masking is a form of intentional discrimination that allows decision makers with prejudicial views to mask their intentions, typically by exploiting how fairness notions are defined."@en .
+
+
+###  https://purl.org/fairops/core#Misrepresentation
+core:Misrepresentation rdf:type owl:NamedIndividual ,
+                                core:ConversationFairnessConcern ;
+                       core:arisesIn core:Conversation ;
+                       skos:definition "A sample population is incomplete or unrepresentative, yet its characteristics are projected onto an entire social group as if they were accurate or universally applicable."@en .
+
+
+###  https://purl.org/fairops/core#MisrepresentationsInProductMarketing
+core:MisrepresentationsInProductMarketing rdf:type owl:NamedIndividual ,
+                                                   core:RecommendationFairnessConcern ;
+                                          core:arisesIn core:Recommendation ;
+                                          skos:definition "Misrepresentations in product marketing--such as the choice of a particular human model, aesthetic style, or contextual presentation in product imagery--may induce marketing-driven biases that negatively affect the fairness of the overall system. These design choices can inadvertently skew user behaviour—forinstance, by appealing more strongly to some demographic groups than others—thereby embedding marketing-driven biases into the observed interaction signals."@en .
+
+
+###  https://purl.org/fairops/core#ModelDeployment
+core:ModelDeployment rdf:type owl:NamedIndividual ,
+                              core:Post-processing ;
+                     core:isFollowedBy core:ModelTuning ;
+                     rdfs:label "Model Deployment" .
+
+
+###  https://purl.org/fairops/core#ModelEvaluation
+core:ModelEvaluation rdf:type owl:NamedIndividual ,
+                              core:In-processing ;
+                     core:isFollowedBy core:ModelDeployment ;
+                     rdfs:label "Model Evaluation" .
+
+
+###  https://purl.org/fairops/core#ModelSelection
+core:ModelSelection rdf:type owl:NamedIndividual ,
+                             core:In-processing ;
+                    core:isFollowedBy core:ModelEvaluation ;
+                    rdfs:label "Model Selection" .
+
+
+###  https://purl.org/fairops/core#ModelTuning
+core:ModelTuning rdf:type owl:NamedIndividual ,
+                          core:Post-processing ;
+                 core:isFollowedBy core:ProjectReview ;
+                 rdfs:label "Model Tuning" .
+
+
+###  https://purl.org/fairops/core#OmittedVariableBias
+core:OmittedVariableBias rdf:type owl:NamedIndividual ,
+                                  docbias:Bias ;
+                         dc:source "https://doi.org/10.1145/3457607"^^xsd:anyURI ;
+                         rdfs:label "Omitted Variable Bias"@en ;
+                         skos:definition "Omitted variable bias occurs when one or more important variables are left out of a model."@en .
+
+
+###  https://purl.org/fairops/core#ParityErrorGapDashboard
+core:ParityErrorGapDashboard rdf:type owl:NamedIndividual ,
+                                      core:EvidenceArtifact ;
+                             skos:definition "monitoring dashboards used to track fairness metrics across groups. They focus on two things: Parity (Are outcomes similar across groups?) and Error gaps (Are mistakes, i.e.,false positives/negatives, uneven across groups? They can use metrics such as Disparate Impact, Absolute Difference, Fair Score, Non-parity unfairness"@en .
+
+
+###  https://purl.org/fairops/core#PatternBasedEvaluationResults
+core:PatternBasedEvaluationResults rdf:type owl:NamedIndividual ,
+                                            core:EvidenceArtifact ;
+                                   skos:definition "Reports of the outcomes of systematically testing an AI system using a set of predefined input patterns or prompts designed to expose specific behaviors, biases, or failures. Controlled prompt suites ensure that each scenario is consistent and repeatable, allowing evaluators to measure how the system responds to different social groups, topics, or edge cases. The results reveal patterns of bias, unfairness, or errors, providing evidence for monitoring, mitigation, and accountability."@en .
+
+
+###  https://purl.org/fairops/core#Planning
+core:Planning rdf:type owl:NamedIndividual ,
+                       core:ReasoningAndDecisionMaking .
+
+
+###  https://purl.org/fairops/core#PopularItemsOverrecommended
+core:PopularItemsOverrecommended rdf:type owl:NamedIndividual ,
+                                          core:RecommendationFairnessConcern ;
+                                 core:arisesIn core:Recommendation ;
+                                 skos:definition "Given the functioning principlesof recommender systems, popular items may end up being disproportionately more recommended."@en .
+
+
+###  https://purl.org/fairops/core#PrePostMitigationComparisonReport
+core:PrePostMitigationComparisonReport rdf:type owl:NamedIndividual ,
+                                                core:EvidenceArtifact ;
+                                       skos:definition "a structured record showing how a system behaved before a fairness intervention and how it behaves after—with clear evidence that the mitigation had (or didn’t have) the intended effect."@en .
+
+
+###  https://purl.org/fairops/core#Prediction
+core:Prediction rdf:type owl:NamedIndividual ,
+                         core:AITypeOfUse .
+
+
+###  https://purl.org/fairops/core#ProbabilisticReasoning
+core:ProbabilisticReasoning rdf:type owl:NamedIndividual ,
+                                     core:ReasoningAndDecisionMaking .
+
+
+###  https://purl.org/fairops/core#ProjectReview
+core:ProjectReview rdf:type owl:NamedIndividual ,
+                            core:Governance ;
+                   core:isFollowedBy core:BusinessRequirements .
+
+
+###  https://purl.org/fairops/core#PublicServices
+core:PublicServices rdf:type owl:NamedIndividual ,
+                             core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#Ranking
+core:Ranking rdf:type owl:NamedIndividual ,
+                      core:ReasoningAndDecisionMaking .
+
+
+###  https://purl.org/fairops/core#Recommendation
+core:Recommendation rdf:type owl:NamedIndividual ,
+                             core:AITypeOfUse .
+
+
+###  https://purl.org/fairops/core#RecordOfPolicyChanges
+core:RecordOfPolicyChanges rdf:type owl:NamedIndividual ,
+                                    core:EvidenceArtifact ;
+                           skos:definition "official documents that track modifications to the rules, guidelines, or procedures governing an AI system. They include details of what was changed, why the change was made, who approved it, and when it took effect. These records provide transparency, accountability, and a historical trail, helping organizations demonstrate responsible management and compliance with ethical or regulatory standards."@en .
+
+
+###  https://purl.org/fairops/core#RemediationRecordsAndPostFixVerification
+core:RemediationRecordsAndPostFixVerification rdf:type owl:NamedIndividual ,
+                                                       core:EvidenceArtifact ;
+                                              skos:definition "formal records documenting actions taken to correct identified problems or biases in an AI system and the follow-up checks to ensure those fixes worked. Remediation records detail what issues were addressed, what changes were made, and who implemented them. Post-fix verification shows that the interventions successfully resolved the problem, often using tests, metrics, or audits, providing accountability and evidence of system reliability and fairness"@en .
+
+
+###  https://purl.org/fairops/core#RepresentationBias
+core:RepresentationBias rdf:type owl:NamedIndividual ,
+                                 docbias:Bias ;
+                        dc:source "https://doi.org/10.1145/3457607"^^xsd:anyURI ;
+                        rdfs:label "Representation Bias"@en ;
+                        skos:definition "Representation bias arises from the use of a skewed or otherwise non-representative sample from a population during data collection process."@en .
+
+
+###  https://purl.org/fairops/core#RetailAndECommerce
+core:RetailAndECommerce rdf:type owl:NamedIndividual ,
+                                 core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#RetrainingDecisionRecordsAndEffectivenessEvidence
+core:RetrainingDecisionRecordsAndEffectivenessEvidence rdf:type owl:NamedIndividual ,
+                                                                core:EvidenceArtifact ;
+                                                       skos:definition "audit-ready documentation showing why you retrained a model, how you did it, and whether it actually improved fairness"@en .
+
+
+###  https://purl.org/fairops/core#SafetyFairnessEvaluationSuite
+core:SafetyFairnessEvaluationSuite rdf:type owl:NamedIndividual ,
+                                            core:EvidenceArtifact ;
+                                   skos:definition "a structured collection of tests, metrics, benchmark datasets, and evaluation procedures used to systematically assess whether an AI system behaves safely and fairly across different scenarios and user groups. It combines multiple evaluation methods—such as fairness metrics, robustness checks, toxicity analysis, bias detection, and stress testing—to provide comprehensive evidence about the system’s reliability, risk profile, and compliance with ethical or regulatory requirements."@en .
+
+
+###  https://purl.org/fairops/core#SamplingBias
+core:SamplingBias rdf:type owl:NamedIndividual ,
+                           docbias:Bias ;
+                  dc:source "https://doi.org/10.1145/3457607"^^xsd:anyURI ;
+                  rdfs:label "Sampling  Bias"@en ;
+                  skos:definition "Similarly to representation bias, sampling bias arises due to non-random sampling of subgroups"@en .
+
+
+###  https://purl.org/fairops/core#ScoringRegression
+core:ScoringRegression rdf:type owl:NamedIndividual ,
+                                core:LearningAndPerception .
+
+
+###  https://purl.org/fairops/core#SegmentLevelCalibrationPerformanceEvidence
+core:SegmentLevelCalibrationPerformanceEvidence rdf:type owl:NamedIndividual ,
+                                                         core:EvidenceArtifact ;
+                                                skos:definition "documents whether predicted outcomes match actual outcomes for each user subgroup and identifies differences in accuracy or fairness (performance). E.g, F-statistic of ANOVA can be used  to test if these differences between groups are statistically significant; calibration gaps quantify the mismatch between predicted and observed results, helping detect and document biases for oversight and mitigation."@en .
+
+
+###  https://purl.org/fairops/core#Stereotyping
+core:Stereotyping rdf:type owl:NamedIndividual ,
+                           core:ConversationFairnessConcern ;
+                  core:arisesIn core:Conversation ;
+                  skos:definition "The formation of negative, fixed generalizations about a socially labeled group."@en .
+
+
+###  https://purl.org/fairops/core#StructuredEvaluationOnGroupConditionedFactualityConsistency
+core:StructuredEvaluationOnGroupConditionedFactualityConsistency rdf:type owl:NamedIndividual ,
+                                                                          core:EvidenceArtifact ;
+                                                                 skos:definition "systematic assessment of an AI system to determine how accurately and consistently it produces information for different social or demographic groups. It checks whether facts are correctly represented and whether responses remain reliable when conditioned on group attributes. This evaluation helps identify group-specific biases, misinformation, or inconsistencies, providing evidence for fairness, accountability, and corrective actions."@en .
+
+
+###  https://purl.org/fairops/core#TechnicalDocument
+core:TechnicalDocument rdf:type owl:NamedIndividual ,
+                                core:EvidenceArtifact .
+
+
+###  https://purl.org/fairops/core#TextGeneration
+core:TextGeneration rdf:type owl:NamedIndividual ,
+                             core:LearningAndPerception .
+
+
+###  https://purl.org/fairops/core#Toxicity
+core:Toxicity rdf:type owl:NamedIndividual ,
+                       core:ConversationFairnessConcern ;
+              core:arisesIn core:Conversation ;
+              skos:definition "The employment of language that insults, threatens, or encourages hatred or violence toward a particular social group."@en .
+
+
+###  https://purl.org/fairops/core#TransportAndLogistics
+core:TransportAndLogistics rdf:type owl:NamedIndividual ,
+                                    core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#UserFacingInstructions
+core:UserFacingInstructions rdf:type owl:NamedIndividual ,
+                                     core:EvidenceArtifact ;
+                            skos:definition "communicate to users how to safely and appropriately interact with the AI, including warnings, usage boundaries, or content restrictions."@en .
+
+
+###  https://purl.org/fairops/core#UtilitiesEnergy
+core:UtilitiesEnergy rdf:type owl:NamedIndividual ,
+                              core:ApplicationDomain .
+
+
+###  https://purl.org/fairops/core#Kolmogorov–SmirnovTest
+<https://purl.org/fairops/core#Kolmogorov–SmirnovTest> rdf:type owl:NamedIndividual ,
+                                                                core:EvidenceArtifact ;
+                                                       skos:definition "statistical test used to compare two distributions. Usefull for: Compare feature distributions across groups (e.g., income distribution for different demographics), Detect distribution shifts (e.g., training vs production data), Identify hidden biases in variables"@en .
+
+
+#################################################################
+#    Annotations
+#################################################################
+
+core:IncompleteHystoricalExamples skos:definition "When the historical data on which the recommender system has been trained systematically lacks information that is valuable to provide good recommendations for certain items or users."@en .
+
+
+#################################################################
+#    Rules
+#################################################################
+
+<a> rdf:type swrl:Variable .
+
+<b> rdf:type swrl:Variable .
+
+core:a rdf:type swrl:Variable .
+
+core:b rdf:type swrl:Variable .
+
+core:C rdf:type swrl:Variable .
+
+core:T rdf:type swrl:Variable .
+
+core:M rdf:type swrl:Variable .
+
+core:N rdf:type swrl:Variable .
+
+core:SP rdf:type swrl:Variable .
+
+core:D rdf:type swrl:Variable .
+
+core:SA rdf:type swrl:Variable .
+
+core:AD rdf:type swrl:Variable .
+
+[ swrla:isRuleEnabled "true"^^xsd:boolean ;
+   rdfs:comment "" ;
+   rdfs:label "Conflict2" ;
+   rdf:type swrl:Imp ;
+   swrl:body [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:ClassAtom ;
+                           swrl:classPredicate core:IndependenceFairnessNotion ;
+                           swrl:argument1 <a>
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:ClassAtom ;
+                                      swrl:classPredicate core:SufficiencyFairnessNotion ;
+                                      swrl:argument1 <b>
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ] ;
+   swrl:head [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:independenceSufficiencyConflictsWith ;
+                           swrl:argument1 <a> ;
+                           swrl:argument2 <b>
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                      swrl:propertyPredicate core:independenceSufficiencyConflictsWith ;
+                                      swrl:argument1 <b> ;
+                                      swrl:argument2 <a>
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ]
+ ] .
+
+[ swrla:isRuleEnabled "true"^^xsd:boolean ;
+   rdfs:comment "" ;
+   rdfs:label "Conflict3" ;
+   rdf:type swrl:Imp ;
+   swrl:body [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:ClassAtom ;
+                           swrl:classPredicate core:IndependenceFairnessNotion ;
+                           swrl:argument1 core:a
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:ClassAtom ;
+                                      swrl:classPredicate core:SeparationFairnessNotion ;
+                                      swrl:argument1 core:b
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ] ;
+   swrl:head [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:independenceSeparationConflictsWith ;
+                           swrl:argument1 core:a ;
+                           swrl:argument2 core:b
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                      swrl:propertyPredicate core:independenceSeparationConflictsWith ;
+                                      swrl:argument1 core:b ;
+                                      swrl:argument2 core:a
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ]
+ ] .
+
+[ swrla:isRuleEnabled "true"^^xsd:boolean ;
+   rdfs:comment "" ;
+   rdfs:label "Conflict1" ;
+   rdf:type swrl:Imp ;
+   swrl:body [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:ClassAtom ;
+                           swrl:classPredicate core:ProceduralFairnessNotion ;
+                           swrl:argument1 core:a
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:ClassAtom ;
+                                      swrl:classPredicate core:OutcomeFairnessNotion ;
+                                      swrl:argument1 core:b
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ] ;
+   swrl:head [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:conflictsWith ;
+                           swrl:argument1 core:a ;
+                           swrl:argument2 core:b
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                      swrl:propertyPredicate core:conflictsWith ;
+                                      swrl:argument1 core:b ;
+                                      swrl:argument2 core:a
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ]
+ ] .
+
+[ swrla:isRuleEnabled "true"^^xsd:boolean ;
+   rdfs:comment "" ;
+   rdfs:label "Conflict4" ;
+   rdf:type swrl:Imp ;
+   swrl:body [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:ClassAtom ;
+                           swrl:classPredicate core:SufficiencyFairnessNotion ;
+                           swrl:argument1 core:a
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:ClassAtom ;
+                                      swrl:classPredicate core:SeparationFairnessNotion ;
+                                      swrl:argument1 core:b
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ] ;
+   swrl:head [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:separationSufficiencyConflictsWith ;
+                           swrl:argument1 core:a ;
+                           swrl:argument2 core:b
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                      swrl:propertyPredicate core:separationSufficiencyConflictsWith ;
+                                      swrl:argument1 core:b ;
+                                      swrl:argument2 core:a
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ]
+ ] .
+
+[ swrla:isRuleEnabled "true"^^xsd:boolean ;
+   rdfs:comment "Connect the FairnessConcern with the subset of FairnessMetrics that can quantify it (in the given AI Tupe Of Use) because they measure the Notions addressing that Concern" ;
+   rdfs:label "GuidelineRule1" ;
+   rdf:type swrl:Imp ;
+   swrl:body [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:arisesIn ;
+                           swrl:argument1 core:C ;
+                           swrl:argument2 core:T
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                      swrl:propertyPredicate core:isSuitableFor ;
+                                      swrl:argument1 core:M ;
+                                      swrl:argument2 core:T
+                                    ] ;
+                          rdf:rest [ rdf:type swrl:AtomList ;
+                                     rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                                 swrl:propertyPredicate core:measures ;
+                                                 swrl:argument1 core:M ;
+                                                 swrl:argument2 core:N
+                                               ] ;
+                                     rdf:rest [ rdf:type swrl:AtomList ;
+                                                rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                                            swrl:propertyPredicate core:isAddressedWith ;
+                                                            swrl:argument1 core:C ;
+                                                            swrl:argument2 core:N
+                                                          ] ;
+                                                rdf:rest rdf:nil
+                                              ]
+                                   ]
+                        ]
+             ] ;
+   swrl:head [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:isQuantifiedBy ;
+                           swrl:argument1 core:C ;
+                           swrl:argument2 core:M
+                         ] ;
+               rdf:rest rdf:nil
+             ]
+ ] .
+
+[ swrla:isRuleEnabled "true"^^xsd:boolean ;
+   rdfs:comment "Connects the FairnessConcern with the subset of MitigationTechnique that can mitigate it." ;
+   rdfs:label "GuidelineRule2" ;
+   rdf:type swrl:Imp ;
+   swrl:body [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:isQuantifiedBy ;
+                           swrl:argument1 core:C ;
+                           swrl:argument2 core:M
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                      swrl:propertyPredicate core:enforces ;
+                                      swrl:argument1 core:T ;
+                                      swrl:argument2 core:M
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ] ;
+   swrl:head [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:mitigatedWith ;
+                           swrl:argument1 core:C ;
+                           swrl:argument2 core:T
+                         ] ;
+               rdf:rest rdf:nil
+             ]
+ ] .
+
+[ swrla:isRuleEnabled "true"^^xsd:boolean ;
+   rdfs:comment "" ;
+   rdfs:label "hasBeenAppliedToRule" ;
+   rdf:type swrl:Imp ;
+   swrl:body [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:testsOn ;
+                           swrl:argument1 core:SP ;
+                           swrl:argument2 core:D
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                      swrl:propertyPredicate core:isProposedBy ;
+                                      swrl:argument1 core:SA ;
+                                      swrl:argument2 core:SP
+                                    ] ;
+                          rdf:rest [ rdf:type swrl:AtomList ;
+                                     rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                                 swrl:propertyPredicate core:relatesTo ;
+                                                 swrl:argument1 core:D ;
+                                                 swrl:argument2 core:AD
+                                               ] ;
+                                     rdf:rest rdf:nil
+                                   ]
+                        ]
+             ] ;
+   swrl:head [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:hasBeenAppliedTo ;
+                           swrl:argument1 core:SA ;
+                           swrl:argument2 core:AD
+                         ] ;
+               rdf:rest rdf:nil
+             ]
+ ] .
+
+[ swrla:isRuleEnabled "true"^^xsd:boolean ;
+   rdfs:comment "" ;
+   rdfs:label "hasBeenTesedOnRule" ;
+   rdf:type swrl:Imp ;
+   swrl:body [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:testsOn ;
+                           swrl:argument1 core:SP ;
+                           swrl:argument2 core:D
+                         ] ;
+               rdf:rest [ rdf:type swrl:AtomList ;
+                          rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                                      swrl:propertyPredicate core:isProposedBy ;
+                                      swrl:argument1 core:SA ;
+                                      swrl:argument2 core:SP
+                                    ] ;
+                          rdf:rest rdf:nil
+                        ]
+             ] ;
+   swrl:head [ rdf:type swrl:AtomList ;
+               rdf:first [ rdf:type swrl:IndividualPropertyAtom ;
+                           swrl:propertyPredicate core:hasBeenTestedOn ;
+                           swrl:argument1 core:SA ;
+                           swrl:argument2 core:D
+                         ] ;
+               rdf:rest rdf:nil
+             ]
+ ] .
+
+###  Generated by the OWL API (version 4.5.24.2023-01-14T21:28:32Z) https://github.com/owlcs/owlapi
