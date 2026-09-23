@@ -24,9 +24,11 @@ USE_CASES_FOLDER = os.path.join(parent_folder, "framework/temlops/use_cases")
 # Path to the fairops ontology (lives in the separate fairness_ontology/fairops
 # project). Override with the FAIROPS_ONTOLOGY_PATH env var if it's located
 # elsewhere on disk.
-FAIROPS_ONTOLOGY_PATH = os.environ.get(
-    "FAIROPS_ONTOLOGY_PATH",
-)
+FAIROPS_ONTOLOGY_PATH = "./fairops/fairops.ttl"
+#os.environ.get(
+#    "FAIROPS_ONTOLOGY_PATH",
+#)
+
 # indiv.ttl holds the FairnessNotion/FairnessMetric individuals (under the
 # indiv: namespace) and always ships alongside fairops.ttl in the same docs
 # folder, so it's derived rather than configured separately.
