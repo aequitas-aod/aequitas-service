@@ -54,15 +54,14 @@ A `Dockerfile` for the GUI lives at `gui/Dockerfile`. Its build context must be 
 
 1. Build the image from the repository root:
    ```bash
-   docker build -f gui/Dockerfile -t aequitas-gui .
+   docker build -f gui/Dockerfile -t compliance-gui .
    ```
 
 2. Run it:
    ```bash
-   docker run --rm -p 8501:8501 --env-file .env aequitas-gui
+   docker run --rm -p 8501:8501 --env-file .env compliance-gui
    ```
-   `--env-file .env` passes through any keys the AI-generation flow on the New AI Product / Compliance Assessment pages needs (e.g. `OPENAI_API_KEY`); it's optional otherwise. The fairops ontology is bundled at `gui/fairops/` and used automatically, so no `FAIROPS_ONTOLOGY_PATH` setup is needed for the container.
-
+ 
 3. Open [http://localhost:8501](http://localhost:8501).
 
 ## GUI Overview

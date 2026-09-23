@@ -5,9 +5,9 @@
 # and the app also reads from tools_catalog/ and framework/ at runtime.
 #
 # Build (from the repository root):
-#   docker build -f gui/Dockerfile -t aequitas-gui .
+#   docker build -f gui/Dockerfile -t compliance-gui .
 # Run:
-#   docker run --rm -p 8501:8501 --env-file .env aequitas-gui
+#   docker run --rm -p 8501:8501 --env-file .env compliance-gui
 
 FROM python:3.10-slim
 
