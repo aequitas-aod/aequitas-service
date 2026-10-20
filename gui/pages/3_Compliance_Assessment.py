@@ -4,6 +4,7 @@ import sys
 import yaml
 import json
 import asyncio
+from datetime import datetime
 import pandas as pd
 import streamlit as st
 from streamlit_ace import st_ace
@@ -28,6 +29,31 @@ from utils import (
     import_from_path,
     get_function_source,
     run_operation,
+)
+from temlops.src.compliance_specifications import (
+    Requirement,
+    RegulatoryRef,
+    RequirementKind,
+    ApplicabilityStatus,
+    Ref,
+    ComplianceObjective,
+    ObjectiveCondition,
+    ThresholdCondition,
+    RangeCondition,
+    CategoricalCondition,
+    StatisticalCondition,
+    CompositeCondition,
+    ComparisonOperator,
+    LogicalOperator,
+    ObjectiveScope,
+    ScopeTarget,
+    ObjectivePriority,
+    Severity,
+    VersionInfo,
+    AuditMeta,
+    AuditEvent,
+    ActorRef,
+    ActorKind,
 )
 from dotenv import load_dotenv, find_dotenv
 
@@ -72,9 +98,10 @@ def render_section_header(text, anchor=None):
 
 
 def render_sidebar_navigation():
-    """Sidebar links that jump to the "Artifacts overview", "Fairness
-    settings" and "Lifecycle stages" sections of the page via in-page anchors
-    set through render_section_header()'s `anchor` param."""
+    """Sidebar links that jump to the "Compliance objectives", "Artifacts
+    overview", "Fairness settings" and "Lifecycle stages" sections of the
+    page via in-page anchors set through render_section_header()'s `anchor`
+    param."""
     st.sidebar.markdown(
         """
         <style>
@@ -108,6 +135,7 @@ def render_sidebar_navigation():
         }
         </style>
         <div class="nav-section-title">Sections</div>
+        <a class="nav-link" href="#compliance-objectives">→ Compliance objectives</a>
         <a class="nav-link" href="#artifacts-overview">→ Artifacts overview</a>
         <a class="nav-link" href="#fairness-settings">→ Fairness settings</a>
         <a class="nav-link" href="#lifecycle-stages">→ Lifecycle stages</a>
@@ -278,6 +306,489 @@ def _render_artifact_entry(category, artifact, current_product, current_framewor
         if category in PREVIEWABLE_ARTIFACT_CATEGORIES and _render_artifact_preview(file_path):
             return
         st.caption(f"File on disk: {file_path}")
+
+
+# Human oversight aspects that Art. 14 EU AI Act ("effective human
+# oversight" -- mirrored in the fairops ontology's
+# core:HumanOversightMitigation / core:HumanOversightRulesThresholdsForIntervention)
+# expects regardless of requirements dimension, so they're checked once and
+# factored into every compliance objective's status below rather than
+# per-dimension.
+HUMAN_OVERSIGHT_CHECKLIST = [
+    "Human operators can monitor the system's behaviour and outputs",
+    "The system's decisions are explainable/interpretable to human operators",
+    "An override or intervention mechanism exists to stop or adjust automated decisions",
+    "Escalation procedures are defined for when an intervention is triggered",
+]
+
+# Compliance objective status levels (low to high) and their badge styling --
+# mirrors the color conventions already used for mitigation groups
+# (MITIGATION_GROUP_STYLES) and operation status rows in 1_Dashboard.py's
+# show_operations_status().
+COMPLIANCE_STATUS_STYLES = {
+    "Not started": {"bg": "#f3f4f6", "border": "#9ca3af", "text": "#4b5563"},
+    "Non-compliant": {"bg": "#fee2e2", "border": "#ef4444", "text": "#991b1b"},
+    "Partially compliant": {"bg": "#fef9c3", "border": "#eab308", "text": "#854d0e"},
+    "Compliant": {"bg": "#dcfce7", "border": "#10b981", "text": "#065f46"},
+}
+
+
+def _resolve_output_artifact(artifacts, artifact_name):
+    """Finds the artifacts:<category> entry whose `name` matches an
+    operation output's declared artifact name. aipc_*.yaml's `outputs:` key
+    doesn't reliably match the artifact's category (e.g. `data_processed:
+    data_processed` under a non-"data"-keyed output), so entries are matched
+    by name across all categories instead."""
+    for category, entries in artifacts.items():
+        for entry in entries:
+            if entry.get("name") == artifact_name:
+                return category, entry
+    return None, None
+
+
+def _operation_artifact_compliance(operation, artifacts, current_product, current_framework):
+    """How many of one operation's declared output artifacts are actually
+    produced: file-backed categories (data/model/report/status/
+    documentation) must exist on disk; declarative categories (configuration/
+    function/service) count as satisfied once wired, since they have no file
+    to check. Returns (satisfied, declared)."""
+    outputs = operation.get("implementation", {}).get("spec", {}).get("outputs", []) or []
+    satisfied = 0
+    declared = 0
+    for output in outputs:
+        for artifact_name in output.values():
+            declared += 1
+            category, entry = _resolve_output_artifact(artifacts, artifact_name)
+            if entry is None:
+                continue
+            file_path = _artifact_file_path(category, entry, current_product, current_framework)
+            if file_path is None or os.path.exists(file_path):
+                satisfied += 1
+    return satisfied, declared
+
+
+def compute_compliance_objective_status(
+    dimension, aipc_configs, artifacts, current_product, current_framework, oversight_satisfied
+):
+    """A compliance objective's status is derived from the compliance status
+    of the artifacts produced by the operations wired to its requirements
+    dimension, capped at "Partially compliant" whenever the human oversight
+    checklist isn't fully satisfied -- artifacts alone can't certify
+    compliance without effective human oversight."""
+    operations = [
+        op
+        for op in aipc_configs.get("operations", [])
+        if op.get("requirement_dimension") == dimension
+    ]
+    if not operations:
+        return "Not started", 0, 0
+
+    satisfied_total = 0
+    declared_total = 0
+    for operation in operations:
+        satisfied, declared = _operation_artifact_compliance(
+            operation, artifacts, current_product, current_framework
+        )
+        satisfied_total += satisfied
+        declared_total += declared
+
+    if declared_total == 0:
+        status = "Not started"
+    elif satisfied_total == 0:
+        status = "Non-compliant"
+    elif satisfied_total == declared_total:
+        status = "Compliant"
+    else:
+        status = "Partially compliant"
+
+    if status == "Compliant" and not oversight_satisfied:
+        status = "Partially compliant"
+
+    return status, satisfied_total, declared_total
+
+
+# Badge colors for Requirement.kind / Requirement.applicability_status
+# (temlops.src.compliance_specifications, §3.2) -- st.badge's fixed palette
+# (red/orange/yellow/blue/green/violet/gray/primary), no custom CSS needed.
+REQUIREMENT_KIND_BADGE_COLOR = {
+    RequirementKind.RISK_MANAGEMENT: "red",
+    RequirementKind.DATA_GOVERNANCE: "orange",
+    RequirementKind.DOCUMENTATION: "blue",
+    RequirementKind.TRANSPARENCY: "violet",
+    RequirementKind.HUMAN_OVERSIGHT: "green",
+    RequirementKind.TESTING: "yellow",
+    RequirementKind.MONITORING: "blue",
+    RequirementKind.DESIGN: "gray",
+    RequirementKind.CYBERSECURITY: "red",
+    RequirementKind.QUALITY_MANAGEMENT: "violet",
+    RequirementKind.OPERATIONAL_CONTROL: "gray",
+    RequirementKind.OTHER: "gray",
+}
+
+APPLICABILITY_BADGE_COLOR = {
+    ApplicabilityStatus.APPLICABLE: "green",
+    ApplicabilityStatus.NOT_APPLICABLE: "gray",
+    ApplicabilityStatus.PARTIALLY_APPLICABLE: "orange",
+    ApplicabilityStatus.UNCERTAIN: "orange",
+    ApplicabilityStatus.NEEDS_REVIEW: "red",
+}
+
+
+def _load_requirements(aipc_configs):
+    """Parses the raw `requirements:` entries of aipc_<framework>.yaml into
+    typed Requirement records (temlops.src.compliance_specifications, §3.2).
+    A malformed entry is skipped with a warning rather than crashing the
+    whole page, since this config is hand-authored YAML."""
+    requirements = []
+    for entry in aipc_configs.get("requirements") or []:
+        try:
+            related = entry.get("related_requirements") or []
+            requirements.append(
+                Requirement(
+                    id=entry["id"],
+                    name=entry["name"],
+                    description=entry.get("description"),
+                    source=RegulatoryRef(**entry["source"]),
+                    requirement_text=entry["requirement_text"],
+                    summary=entry.get("summary"),
+                    kind=RequirementKind(entry["kind"]),
+                    context=Ref(id=entry["context"]),
+                    applicability_status=ApplicabilityStatus(
+                        entry["applicability_status"]
+                    ),
+                    related_requirements={Ref(id=r) for r in related} or None,
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            st.warning(
+                f"Skipped malformed requirement entry {entry.get('id', '?')!r}: {exc}"
+            )
+    return requirements
+
+
+def _placeholder_audit():
+    """Synthetic AuditMeta for a ComplianceObjective loaded from
+    aipc_<framework>.yaml, which carries no real created/modified provenance
+    of its own -- AuditMeta (§2.3) requires both non-optionally. Mirrors the
+    content-free `AuditMeta()` / `VersionInfo("0.1.0")` calls already used in
+    the reference material's own worked examples (see module docstring of
+    temlops.src.compliance_specifications)."""
+    now = datetime.now()
+    event = AuditEvent(at=now, by=ActorRef(kind=ActorKind.SERVICE, identity="aipc-yaml-config"))
+    return AuditMeta(created=event, modified=event)
+
+
+def _parse_objective_condition(entry):
+    """Builds one ObjectiveCondition (§3.6 discriminated union) from its
+    `condition:` block in aipc_<framework>.yaml, dispatching on `kind`."""
+    kind = entry["kind"]
+    if kind == "threshold":
+        return ThresholdCondition(
+            operator=ComparisonOperator(entry["operator"]), value=entry["value"]
+        )
+    if kind == "range":
+        return RangeCondition(
+            lower=entry["lower"],
+            upper=entry["upper"],
+            inclusive=entry.get("inclusive", True),
+        )
+    if kind == "categorical":
+        return CategoricalCondition(allowed=set(entry["allowed"]))
+    if kind == "statistical":
+        return StatisticalCondition(
+            test=entry["test"],
+            significance=entry["significance"],
+            hypothesis=entry["hypothesis"],
+        )
+    if kind == "composite":
+        return CompositeCondition(
+            operator=LogicalOperator(entry["operator"]),
+            conditions=[_parse_objective_condition(c) for c in entry["conditions"]],
+        )
+    raise ValueError(f"unknown condition kind {kind!r}")
+
+
+def _load_compliance_objectives(aipc_configs):
+    """Parses the raw `compliance_objectives:` entries of
+    aipc_<framework>.yaml into typed ComplianceObjective records
+    (temlops.src.compliance_specifications, §3.6). A malformed entry is
+    skipped with a warning rather than crashing the whole page."""
+    objectives = []
+    for entry in aipc_configs.get("compliance_objectives") or []:
+        try:
+            scope = None
+            if entry.get("scope"):
+                scope = ObjectiveScope(
+                    applies_to={
+                        ScopeTarget(t) for t in entry["scope"].get("applies_to", [])
+                    }
+                )
+            related = entry.get("requirements") or []
+            objectives.append(
+                ComplianceObjective(
+                    id=entry["id"],
+                    version=VersionInfo(version=entry.get("version", "0.1.0")),
+                    audit=_placeholder_audit(),
+                    name=entry["name"],
+                    description=entry.get("description", ""),
+                    metric=Ref(id=entry["metric"]),
+                    condition=_parse_objective_condition(entry["condition"]),
+                    priority=ObjectivePriority(entry["priority"]),
+                    severity=Severity(entry["severity"]),
+                    scope=scope,
+                    requirements=[Ref(id=r) for r in related],
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            st.warning(
+                f"Skipped malformed compliance objective entry "
+                f"{entry.get('id', '?')!r}: {exc}"
+            )
+    return objectives
+
+
+def _objectives_by_requirement(compliance_objectives):
+    """Reverse index: requirement id -> ComplianceObjective instances that
+    cite it (ComplianceObjective.requirements), so render_requirements_list()
+    can look up each requirement's related objectives without an O(n*m)
+    scan per requirement."""
+    index = defaultdict(list)
+    for objective in compliance_objectives:
+        for ref in objective.requirements:
+            index[ref.id].append(objective)
+    return index
+
+
+def _operations_for_objective(objective_id, aipc_configs):
+    """Operations whose `objective:` field (a single id or a list of ids)
+    cites this ComplianceObjective -- the inverse of
+    ComplianceObjective.requirements, letting us ask "has evidence for this
+    objective actually been produced?" (mirrors the ValidationOperation.
+    objective field from the reference material's worked examples)."""
+    matches = []
+    for op in aipc_configs.get("operations", []):
+        op_objective = op.get("objective")
+        if op_objective is None:
+            continue
+        ids = op_objective if isinstance(op_objective, list) else [op_objective]
+        if objective_id in ids:
+            matches.append(op)
+    return matches
+
+
+def compute_objective_satisfaction(
+    objective, aipc_configs, artifacts, current_product, current_framework
+):
+    """Whether a ComplianceObjective's evidence has actually been produced:
+    every declared output artifact of every operation wired to it (via
+    `objective:`) must exist on disk. Mirrors
+    compute_compliance_objective_status()'s artifact-existence check,
+    scoped to one objective instead of a whole requirements dimension.
+    Returns (status, satisfied, declared) where status is one of
+    "satisfied" / "partial" / "not_satisfied" / "not_evaluated"."""
+    operations = _operations_for_objective(objective.id, aipc_configs)
+    if not operations:
+        return "not_evaluated", 0, 0
+
+    satisfied_total = 0
+    declared_total = 0
+    for operation in operations:
+        satisfied, declared = _operation_artifact_compliance(
+            operation, artifacts, current_product, current_framework
+        )
+        satisfied_total += satisfied
+        declared_total += declared
+
+    if declared_total == 0:
+        return "not_evaluated", satisfied_total, declared_total
+    if satisfied_total == declared_total:
+        return "satisfied", satisfied_total, declared_total
+    if satisfied_total == 0:
+        return "not_satisfied", satisfied_total, declared_total
+    return "partial", satisfied_total, declared_total
+
+
+# icon/color per compute_objective_satisfaction() status, for the badge shown
+# inside each requirement's expander in render_requirements_list().
+OBJECTIVE_SATISFACTION_BADGE = {
+    "satisfied": ("Satisfied", ":material/check_circle:", "green"),
+    "partial": ("Partially satisfied", ":material/warning:", "orange"),
+    "not_satisfied": ("Not satisfied", ":material/cancel:", "red"),
+    "not_evaluated": ("Not evaluated", ":material/help:", "gray"),
+}
+
+
+def render_requirements_list(
+    requirements,
+    objectives_by_requirement,
+    aipc_configs,
+    artifacts,
+    current_product,
+    current_framework,
+):
+    """One expander per Requirement (§3.2): its regulatory source, kind and
+    applicability as badges, the obligation text, any related requirements
+    it links to, and -- for each ComplianceObjective that cites it (§3.6,
+    `objectives_by_requirement`) -- a satisfaction badge computed from
+    whether the evidencing operation's output artifact actually exists on
+    disk (compute_objective_satisfaction()). `related_requirements` may
+    point at an id with no entry of its own in this product's requirements
+    (e.g. a requirement cited but not yet transcribed) -- shown by its raw
+    id in that case."""
+    if not requirements:
+        st.caption("No requirements declared yet for this AI product.")
+        return
+
+    by_id = {req.id: req for req in requirements}
+    for req in requirements:
+        with st.expander(req.name, icon=":material/gavel:"):
+            with st.container(horizontal=True):
+                st.badge(
+                    req.kind.value.replace("_", " ").title(),
+                    color=REQUIREMENT_KIND_BADGE_COLOR.get(req.kind, "gray"),
+                )
+                st.badge(
+                    req.applicability_status.value.replace("_", " ").title(),
+                    color=APPLICABILITY_BADGE_COLOR.get(
+                        req.applicability_status, "gray"
+                    ),
+                )
+                source_label = req.source.framework
+                if req.source.article:
+                    source_label += f" · {req.source.article}"
+                st.badge(source_label, icon=":material/balance:", color="gray")
+
+            if req.description:
+                st.write(req.description)
+            st.caption(f"“{req.requirement_text}”")
+            if req.summary:
+                st.caption(req.summary)
+
+            if req.related_requirements:
+                related_labels = [
+                    by_id[ref.id].name if ref.id in by_id else ref.id
+                    for ref in sorted(req.related_requirements, key=lambda r: r.id)
+                ]
+                st.caption("Related: " + ", ".join(related_labels))
+
+            related_objectives = objectives_by_requirement.get(req.id, [])
+            if related_objectives:
+                st.caption("Compliance objectives")
+                with st.container(horizontal=True):
+                    for objective in related_objectives:
+                        status, satisfied, declared = compute_objective_satisfaction(
+                            objective,
+                            aipc_configs,
+                            artifacts,
+                            current_product,
+                            current_framework,
+                        )
+                        label, icon, color = OBJECTIVE_SATISFACTION_BADGE[status]
+                        detail = f" ({satisfied}/{declared})" if declared else ""
+                        st.badge(
+                            f"{objective.name} — {label}{detail}",
+                            icon=icon,
+                            color=color,
+                        )
+
+
+def render_human_oversight_checklist():
+    """Renders the human oversight checklist and returns whether every
+    aspect is currently checked."""
+    with st.expander("Human oversight checklist", expanded=False):
+        st.caption(
+            "Applies across all compliance objectives below, per Art. 14 EU AI Act."
+        )
+        checked = [
+            st.checkbox(aspect, key=f"compliance_oversight_{i}")
+            for i, aspect in enumerate(HUMAN_OVERSIGHT_CHECKLIST)
+        ]
+    return all(checked)
+
+
+def render_compliance_objective_card(dimension, status, satisfied, declared):
+    style = COMPLIANCE_STATUS_STYLES[status]
+    detail = (
+        f"{satisfied}/{declared} output artifacts produced"
+        if declared
+        else "No operations wired yet"
+    )
+    st.markdown(
+        f"""
+        <div style="
+            margin:8px 0 16px;
+            padding:12px 16px;
+            background-color:{style['bg']};
+            border-left:4px solid {style['border']};
+            border-radius:6px;
+            min-height:96px;
+        ">
+            <div style="font-size:12px; color:{style['text']}; font-weight:700; text-transform:uppercase; margin-bottom:6px;">
+                {dimension.replace('_', ' ').capitalize()}
+            </div>
+            <div style="font-size:16px; color:{style['text']}; font-weight:600;">
+                {status}
+            </div>
+            <div style="font-size:13px; color:{style['text']};">
+                {detail}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def compliance_objectives_section():
+    """Renders one status card per requirements dimension declared in
+    aipc_<framework>.yaml (e.g. baseline, fairness, robustness) -- each
+    status combines the compliance status of that dimension's wired
+    operations' output artifacts with the human oversight checklist above."""
+    render_section_header("Compliance objectives", anchor="compliance-objectives")
+    st.write(
+        "Status of each requirements dimension for this AI product, derived from "
+        "the compliance status of its artifacts and from human oversight aspects."
+    )
+    aipc_configs = load_aipc_config(DEFAULT_PRODUCT, DEFAULT_FRAMEWORK)
+    if not aipc_configs:
+        st.info("No AI product configuration found yet.")
+        return
+
+    artifacts = aipc_configs.get("artifacts", {})
+    dimensions = aipc_configs.get("requirements_dimensions", [])
+    if not dimensions:
+        st.info("No requirements dimensions defined yet for this AI product.")
+        return
+
+    requirements = _load_requirements(aipc_configs)
+    compliance_objectives = _load_compliance_objectives(aipc_configs)
+    objectives_by_requirement = _objectives_by_requirement(compliance_objectives)
+    st.subheader(":material/gavel: Requirements")
+    st.caption(
+        f"{len(requirements)} regulatory requirement(s) declared for this AI product."
+    )
+    render_requirements_list(
+        requirements,
+        objectives_by_requirement,
+        aipc_configs,
+        artifacts,
+        DEFAULT_PRODUCT,
+        DEFAULT_FRAMEWORK,
+    )
+
+    oversight_satisfied = render_human_oversight_checklist()
+
+    cols = st.columns(3)
+    for i, dimension in enumerate(dimensions):
+        status, satisfied, declared = compute_compliance_objective_status(
+            dimension,
+            aipc_configs,
+            artifacts,
+            DEFAULT_PRODUCT,
+            DEFAULT_FRAMEWORK,
+            oversight_satisfied,
+        )
+        with cols[i % 3]:
+            render_compliance_objective_card(dimension, status, satisfied, declared)
 
 
 def artifacts_overview_section():
@@ -596,9 +1107,16 @@ MITIGATION_GROUP_STYLES = {
 
 
 # Renders the recommended mitigation `category` (e.g. "A") as a 3-column
-# row -- one column per group in MITIGATION_GROUP_STYLES -- highlighting
-# only the column matching the category's group (looked up via
-# map_mitigation_recommendations()) and leaving the other two muted.
+# row -- one column per group in MITIGATION_GROUP_STYLES -- highlighting the
+# column matching the category's group (looked up via
+# map_mitigation_recommendations()) with its specific category + description,
+# and ALSO marking every group that comes after it (Pre- -> In- ->
+# Post-processing order, MITIGATION_GROUP_STYLES' own key order) as active:
+# a mitigation applied at an earlier stage doesn't rule out also applying
+# one at a later stage, so later groups stay available rather than muted.
+# Only groups BEFORE the recommended one are muted, matching
+# populate_stages()'s own `stage_meta["level"] < recommended_level` logic
+# (gui/utils.py) for locking the operation cards of earlier stages.
 def render_recommended_mitigation_category(category):
     category_info = {m["category"]: m for m in map_mitigation_recommendations()}.get(
         category
@@ -610,6 +1128,9 @@ def render_recommended_mitigation_category(category):
     # belonging to stages that precede this recommended group.
     st.session_state["recommended_mitigation_category"] = category
     st.session_state["recommended_mitigation_group"] = group
+
+    group_order = list(MITIGATION_GROUP_STYLES)
+    recommended_index = group_order.index(group) if group in group_order else None
 
     columns = st.columns(len(MITIGATION_GROUP_STYLES))
     for col, (group_name, style) in zip(columns, MITIGATION_GROUP_STYLES.items()):
@@ -630,6 +1151,30 @@ def render_recommended_mitigation_category(category):
                         </div>
                         <div style="font-size:16px; color:{style['text']};">
                             ➜ <strong style="font-size:18px;">{category}</strong>  {description}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            elif (
+                recommended_index is not None
+                and group_order.index(group_name) > recommended_index
+            ):
+                st.markdown(
+                    f"""
+                    <div style="
+                        margin:8px 0 16px;
+                        padding:10px 16px;
+                        background-color:{style['bg']};
+                        border-left:4px solid {style['border']};
+                        border-radius:6px;
+                        min-height:78px;
+                    ">
+                        <div style="font-size:12px; color:{style['text']}; font-weight:700; text-transform:uppercase; margin-bottom:6px;">
+                            {group_name}
+                        </div>
+                        <div style="font-size:14px; color:{style['text']};">
+                            Also available
                         </div>
                     </div>
                     """,
@@ -855,6 +1400,97 @@ def map_mitigation_recommendations():
     ]
     return mitigation_categories
 
+# Master implementation guidelines shared with the AI coding agent (mirrors
+# CLAUDE.md) -- the system-level framing for the "Generate implementation"
+# button in render_operation_entry_expander().
+PLAN_PROMPT_PATH = os.path.join(current_folder, "plan.md")
+
+
+def build_operation_implementation_prompt(entry, code_catalog):
+    """Builds the prompt for the "Generate implementation" button: the
+    framework's master guidelines (plan.md) plus the operation's I/O spec
+    and the matching tools_catalog rows' name/documentation/snippet, so the
+    MCP-backed coding agent (run_mcp_query) can produce a ready-to-use
+    module for the entry's operation category (`entry["type"]`)."""
+    plan_prompt = open(PLAN_PROMPT_PATH, "r").read()
+    specs = entry["implementation"]["spec"]
+
+    tool_references = []
+    for tool in code_catalog.itertuples():
+        snippet_file = os.path.join(
+            TOOLS_CATALOG_FOLDER, tool.code_snippet_path.split(":")[0]
+        )
+        snippet_method = tool.code_snippet_path.split(":")[1]
+        snippet = get_function_source(snippet_file, snippet_method)
+        tool_references.append(
+            f"### {tool.tool} ({tool.documentation})\n```python\n{snippet}\n```"
+        )
+
+    return f"""{plan_prompt}
+
+Generate a complete Python implementation for the '{entry['type']}' operation category.
+
+Operation: {entry.get('name', entry['type'])}
+Method name: {specs.get('method_name') or '(to be defined)'}
+Input artifacts: {json.dumps(specs.get('inputs', []))}
+Output artifacts: {json.dumps(specs.get('outputs', []))}
+
+Base the implementation on the following open-source tool suggestions from the tools catalog, adapting and combining their snippets as needed:
+
+{chr(10).join(tool_references) if tool_references else "(no catalog suggestions found for this operation type)"}
+
+Return only the Python code for the operation, ready to be inserted into the use case's platform module.
+"""
+
+
+async def run_mcp_query(user_input):
+    """AI coding agent over the framework's MCP tool servers -- backs the
+    "Generate implementation" button in render_operation_entry_expander()."""
+    model = ChatOpenAI(model="gpt-5")
+
+    client = MultiServerMCPClient(
+        {
+            "mlops_tai_engineers": {
+                "transport": "streamable_http",
+                "url": "http://127.0.0.1:8082/mcp",
+            },
+            "file_system": {
+                "transport": "streamable_http",
+                "url": "http://127.0.0.1:8080/mcp",
+            },
+        }
+    )
+    tools = await client.get_tools()
+    model_with_tools = model.bind_tools(tools)
+    tool_node = ToolNode(tools)
+
+    def should_continue(state: MessagesState):
+        messages = state["messages"]
+        last_message = messages[-1]
+        if last_message.tool_calls:
+            return "tools"
+        return END
+
+    async def call_model(state: MessagesState):
+        messages = state["messages"]
+        response = await model_with_tools.ainvoke(messages)
+        return {"messages": [response]}
+
+    builder = StateGraph(MessagesState)
+    builder.add_node("call_model", call_model)
+    builder.add_node("tools", tool_node)
+    builder.add_edge(START, "call_model")
+    builder.add_conditional_edges("call_model", should_continue)
+    builder.add_edge("tools", "call_model")
+
+    graph = builder.compile()
+    result = await graph.ainvoke(
+        {"messages": [{"role": "user", "content": user_input}]}
+    )
+
+    last_msg = result["messages"][-1].content
+    return last_msg if isinstance(last_msg, str) else str(last_msg)
+
 
 # Renders one aipc_*.yaml operation entry (or a synthetic entry with the
 # same shape, e.g. an "Add new operation" / "Add custom metric" draft) as an
@@ -1050,6 +1686,37 @@ def render_operation_entry_expander(
                             readonly=False,
                         )
 
+                st.divider()
+                generated_impl_key = f"generated_impl_{key_prefix}_{ind}"
+                if st.button(
+                    f"✨ Generate implementation for '{entry['type']}'",
+                    key=f"generate_impl_btn_{key_prefix}_{ind}",
+                    width="stretch",
+                ):
+                    with st.spinner("Generating implementation..."):
+                        try:
+                            prompt = build_operation_implementation_prompt(
+                                entry, code_catalog
+                            )
+                            st.session_state[generated_impl_key] = asyncio.run(
+                                run_mcp_query(prompt)
+                            )
+                        except Exception as exc:
+                            st.error(f"Could not generate implementation: {exc}")
+
+                if st.session_state.get(generated_impl_key):
+                    st.write(f"Generated implementation for **{entry['type']}**")
+                    st_ace(
+                        value=st.session_state[generated_impl_key],
+                        language="python",
+                        theme="xcode",
+                        key=f"generated_impl_editor_{key_prefix}_{ind}",
+                        height=300,
+                        font_size=14,
+                        show_gutter=True,
+                        readonly=False,
+                    )
+
         if st.button("Run operation ", key=f"run_op_{key_prefix}_{ind}"):
             try:
                 run_operation(
@@ -1135,6 +1802,9 @@ if __name__ == "__main__":
     render_sidebar_navigation()
 
     ai_prod_name, ai_prod_desc = ai_product_header()
+
+    with st.container(border=True):
+        compliance_objectives_section()
 
     with st.container(border=True):
         artifacts_overview_section()
