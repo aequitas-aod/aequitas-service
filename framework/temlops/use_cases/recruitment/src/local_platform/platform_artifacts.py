@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 
 import mlflow
 import mlflow.sklearn
+import mlflow.pytorch
+import torch.nn as nn
 
 from temlops.src.artifact_types import Data, Model, Configuration, Report, Status, Documentation
 
@@ -29,14 +31,16 @@ class DataTabular(Data):
         return dataset
     
     def log_dataset(self, dataset):
-        if "resulting_filepath" in self.__dict__:   
+        if "resulting_filepath" in self.__dict__:
             self.filepath = self.resulting_filepath
+        out_path = os.path.join(DATA_ARTIFACTS_PATH, self.filepath)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
         if self.filetype == "csv":
-            dataset.to_csv(os.path.join(DATA_ARTIFACTS_PATH, self.filepath), index=False)
+            dataset.to_csv(out_path, index=False)
         elif self.filetype == "json":
-            dataset.to_json(os.path.join(DATA_ARTIFACTS_PATH, self.filepath))
+            dataset.to_json(out_path)
         else:
-            dataset.to_parquet(os.path.join(DATA_ARTIFACTS_PATH, self.filepath))
+            dataset.to_parquet(out_path)
 
 class ReportTabular(Report):
     def __init__(self, config):
@@ -55,21 +59,24 @@ class ReportTabular(Report):
 
     def save_report_stats(self, dataframe):
         out_path = os.path.join(REPORTS_ARTIFACTS_PATH, self.filepath)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
         if out_path.endswith(".html"):
             dataframe.save_html(out_path)
         else:
-            dataframe.save_json(out_path)        
-            
+            dataframe.save_json(out_path)
+
     def save_report_dataframe(self, dataframe):
         out_path = os.path.join(REPORTS_ARTIFACTS_PATH, self.filepath)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
         dataframe = pd.concat([dataframe, self.report], ignore_index=True)
         if self.filetype == "csv":
             dataframe.to_csv(out_path, index=False)
         elif self.filetype == "json":
             dataframe.to_json(out_path)
-            
+
     def save_report_image(self, dataframe):
         out_path = os.path.join(REPORTS_ARTIFACTS_PATH, self.filepath)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
         if self.filetype == "csv":
             dataframe.to_csv(out_path, index=False)
         elif self.filetype == "json":
@@ -97,6 +104,7 @@ class ReportTabular(Report):
                     f"{height:.3f}", ha='center', va='bottom', fontsize=10, fontweight='bold')
 
         plt.tight_layout()
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         fig.savefig(filename, dpi=300, bbox_inches='tight')
         plt.close(fig)
 
@@ -114,10 +122,16 @@ class ModelTabular(Model):
     
     def save_model(self, model):
         model_path = os.path.join(MODEL_ARTIFACTS_PATH, self.filepath)
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
         with open(model_path, "wb") as model_file:
             pickle.dump(model, model_file, pickle.HIGHEST_PROTOCOL)
         with mlflow.start_run(run_name="clf_with_equalized_odds") as run:
-            mlflow.sklearn.log_model(model, artifact_path="classifier")
+            torch_module = model if isinstance(model, nn.Module) else getattr(model, "model", None)
+            if isinstance(torch_module, nn.Module):
+                mlflow.pytorch.log_model(torch_module, artifact_path="classifier")
+            else:
+                mlflow.sklearn.log_model(model, artifact_path="classifier")
+        return model
 
 
 class DocumentationTabular(Documentation):

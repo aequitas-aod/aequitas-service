@@ -61,8 +61,8 @@ def data_profiling(data: Data, report: Report) -> Report:
     
 def data_profiling_custom(
     data_train: Data, 
-    config: Configuration
-    ):
+    config: Configuration, 
+    report: Report) -> Report:
     data = DataTabular(data_train.__dict__)
     df = data.load_dataset()
     results = []
