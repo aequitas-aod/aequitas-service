@@ -1,0 +1,248 @@
+{
+  "actions": "dtypes, missing_values, unique_values, correlations, histograms, outliers, summary",
+  "results": [
+    {
+      "action": "dtypes",
+      "dtypes": {
+        "age": "int64",
+        "workclass": "int64",
+        "education": "int64",
+        "education-num": "int64",
+        "marital-status": "int64",
+        "occupation": "int64",
+        "relationship": "int64",
+        "race": "int64",
+        "sex": "int64",
+        "capitalgain": "int64",
+        "capitalloss": "int64",
+        "hoursperweek": "int64",
+        "native-country": "int64",
+        "income": "int64"
+      }
+    },
+    {
+      "action": "missing_values",
+      "missing_count": {
+        "age": 0,
+        "workclass": 0,
+        "education": 0,
+        "education-num": 0,
+        "marital-status": 0,
+        "occupation": 0,
+        "relationship": 0,
+        "race": 0,
+        "sex": 0,
+        "capitalgain": 0,
+        "capitalloss": 0,
+        "hoursperweek": 0,
+        "native-country": 0,
+        "income": 0
+      },
+      "missing_pct": {
+        "age": 0.0,
+        "workclass": 0.0,
+        "education": 0.0,
+        "education-num": 0.0,
+        "marital-status": 0.0,
+        "occupation": 0.0,
+        "relationship": 0.0,
+        "race": 0.0,
+        "sex": 0.0,
+        "capitalgain": 0.0,
+        "capitalloss": 0.0,
+        "hoursperweek": 0.0,
+        "native-country": 0.0,
+        "income": 0.0
+      }
+    },
+    {
+      "action": "unique_values",
+      "unique": {
+        "age": {
+          "unique_count": 5
+        },
+        "workclass": {
+          "unique_count": 9
+        },
+        "education": {
+          "unique_count": 16
+        },
+        "education-num": {
+          "unique_count": 16
+        },
+        "marital-status": {
+          "unique_count": 7
+        },
+        "occupation": {
+          "unique_count": 15
+        },
+        "relationship": {
+          "unique_count": 6
+        },
+        "race": {
+          "unique_count": 5
+        },
+        "sex": {
+          "unique_count": 2
+        },
+        "capitalgain": {
+          "unique_count": 5
+        },
+        "capitalloss": {
+          "unique_count": 5
+        },
+        "hoursperweek": {
+          "unique_count": 5
+        },
+        "native-country": {
+          "unique_count": 41
+        },
+        "income": {
+          "unique_count": 2
+        }
+      }
+    },
+    {
+      "action": "correlations",
+      "correlation_head": {
+        "age": {
+          "age": 1.0,
+          "workclass": 0.038,
+          "education": 0.009,
+          "education-num": 0.035,
+          "marital-status": 0.417
+        },
+        "workclass": {
+          "age": 0.038,
+          "workclass": 1.0,
+          "education": -0.044,
+          "education-num": 0.085,
+          "marital-status": 0.001
+        },
+        "education": {
+          "age": 0.009,
+          "workclass": -0.044,
+          "education": 1.0,
+          "education-num": -0.285,
+          "marital-status": 0.012
+        },
+        "education-num": {
+          "age": 0.035,
+          "workclass": 0.085,
+          "education": -0.285,
+          "education-num": 1.0,
+          "marital-status": -0.068
+        },
+        "marital-status": {
+          "age": 0.417,
+          "workclass": 0.001,
+          "education": 0.012,
+          "education-num": -0.068,
+          "marital-status": 1.0
+        }
+      },
+      "correlation_csv": "recruitment_correlation.csv",
+      "correlation_png": "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_correlation.png"
+    },
+    {
+      "action": "histograms",
+      "histograms": [
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_age.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_workclass.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_education.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_education-num.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_marital-status.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_occupation.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_relationship.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_race.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_sex.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_capitalgain.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_capitalloss.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_hoursperweek.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_native-country.png",
+        "/home/albana/Desktop/Albana/DataScience/UniBO/AIFactory/Projects/aequitas/aequitas-service/framework/temlops/use_cases/recruitment/src/local_platform/artifacts/report/recruitment_hist_income.png"
+      ]
+    },
+    {
+      "action": "outliers",
+      "outliers": {
+        "age": {
+          "n_outliers": 0,
+          "low": -2.0,
+          "high": 6.0
+        },
+        "workclass": {
+          "n_outliers": 8314,
+          "low": 2.0,
+          "high": 2.0
+        },
+        "education": {
+          "n_outliers": 1335,
+          "low": -5.0,
+          "high": 11.0
+        },
+        "education-num": {
+          "n_outliers": 1008,
+          "low": 4.5,
+          "high": 16.5
+        },
+        "marital-status": {
+          "n_outliers": 2089,
+          "low": -1.5,
+          "high": 2.5
+        },
+        "occupation": {
+          "n_outliers": 0,
+          "low": -6.5,
+          "high": 13.5
+        },
+        "relationship": {
+          "n_outliers": 0,
+          "low": -4.5,
+          "high": 7.5
+        },
+        "race": {
+          "n_outliers": 3989,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "sex": {
+          "n_outliers": 0,
+          "low": -1.5,
+          "high": 2.5
+        },
+        "capitalgain": {
+          "n_outliers": 2250,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "capitalloss": {
+          "n_outliers": 1251,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "hoursperweek": {
+          "n_outliers": 11867,
+          "low": 2.0,
+          "high": 2.0
+        },
+        "native-country": {
+          "n_outliers": 2846,
+          "low": 0.0,
+          "high": 0.0
+        },
+        "income": {
+          "n_outliers": 6541,
+          "low": 0.0,
+          "high": 0.0
+        }
+      }
+    },
+    {
+      "action": "summary",
+      "n_rows": 27351,
+      "n_cols": 14,
+      "memory_mb": 2.9215240478515625
+    }
+  ]
+}
