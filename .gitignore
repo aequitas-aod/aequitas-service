@@ -2,8 +2,8 @@
 .ipynb_checkpoints/
 
 # Artifacts
-data/
-models/
+#data/
+#model/
 
 # Python cache
 __pycache__/
