@@ -62,12 +62,13 @@ operations:
           - data_test: data_testing 
           - data_valid: data_validation 
 
-  - type: data_profiling  
+  - type: data_profiling
     stage: data_preparation
     id: data_profiling_custom
-    name: Data profiling custom analysis 
+    name: Data profiling custom analysis
     requirement_dimension: baseline
-    implementation: 
+    objective: objective_data_quality_check
+    implementation:
       framework: local
       spec:
         path: src/local_platform/data_preparation.py
