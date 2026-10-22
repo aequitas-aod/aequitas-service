@@ -1152,6 +1152,7 @@ def render_operation_entry_expander(
                     snippet_path = tool.code_snippet_path
                     toolname = tool.tool
                     documentation = tool.documentation
+                    #st.write(f"Tool: {toolname} ({snippet_path})")
                     file = os.path.join(
                         TOOLS_CATALOG_FOLDER, snippet_path.split(":")[0]
                     )
