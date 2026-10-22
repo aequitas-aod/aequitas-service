@@ -426,6 +426,7 @@ artifacts:
   configuration:
     - name: splitting_config
       config:
+        test_size: 0.2
         valid_size: 0.2
         random_state: 4
     - name: model_train_baseline
